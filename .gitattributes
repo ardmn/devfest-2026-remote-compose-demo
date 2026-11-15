@@ -1,0 +1,12 @@
+* text=auto
+*.bat text eol=crlf
+*.sh text eol=lf
+gradlew text eol=lf
+# Hashed or compared byte for byte (stage.json's SHA-256 is in the manifest; generated files are checked by tests):
+# the same bytes on every OS, whatever core.autocrlf says.
+*.json text eol=lf
+*.swift text eol=lf
+*.go text eol=lf
+*.kt text eol=lf
+*.rc binary
+*.png binary

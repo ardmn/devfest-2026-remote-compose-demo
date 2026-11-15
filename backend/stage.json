@@ -1,0 +1,60 @@
+{
+  "bannersShown": 3,
+  "banners": [
+    {
+      "headline": "Coffee\ntime?",
+      "cta": "ORDER NOW",
+      "color": "#D2A68A",
+      "emoji": "☕",
+      "target": "americano"
+    },
+    {
+      "headline": "Matcha\nseason",
+      "cta": "TRY IT",
+      "color": "#A8C3A0",
+      "emoji": "🍵",
+      "target": "matcha"
+    },
+    {
+      "headline": "Cold brew\nsummer",
+      "cta": "GRAB ONE",
+      "color": "#B9D6E3",
+      "emoji": "🧃",
+      "target": "coldbrew"
+    },
+    {
+      "headline": "Fresh\ncroissants",
+      "cta": "SEE MORE",
+      "color": "#F3D9A4",
+      "emoji": "🥐",
+      "target": "croissant"
+    },
+    {
+      "headline": "Cookie\nlatte",
+      "cta": "TREAT ME",
+      "color": "#E7C6BE",
+      "emoji": "🍪",
+      "target": "cookie"
+    }
+  ],
+  "favorites": [
+    "americano",
+    "caramel"
+  ],
+  "forYou": [
+    "cookie",
+    "matcha",
+    "mocha"
+  ],
+  "promo": {
+    "title": "Happy hour",
+    "badge": "−20% · until 18:00",
+    "color": "#FF2E5E4E",
+    "discount": 20,
+    "drinks": [
+      "mocha",
+      "coldbrew",
+      "cookie"
+    ]
+  }
+}

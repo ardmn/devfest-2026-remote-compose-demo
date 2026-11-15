@@ -1,0 +1,62 @@
+{"drinks": [
+  {
+    "emoji": "☕",
+    "name": "Americano",
+    "priceCents": 350,
+    "id": "americano"
+  },
+  {
+    "emoji": "🧋",
+    "name": "Caramel Macchiato",
+    "priceCents": 480,
+    "id": "caramel"
+  },
+  {
+    "emoji": "🥤",
+    "name": "Cookie Latte",
+    "priceCents": 520,
+    "id": "cookie"
+  },
+  {
+    "emoji": "🍵",
+    "name": "Matcha Latte",
+    "priceCents": 460,
+    "id": "matcha"
+  },
+  {
+    "emoji": "🍫",
+    "name": "Iced Mocha",
+    "priceCents": 490,
+    "id": "mocha"
+  },
+  {
+    "emoji": "🫖",
+    "name": "Chai Latte",
+    "priceCents": 420,
+    "id": "chai"
+  },
+  {
+    "emoji": "🍰",
+    "name": "Cheesecake",
+    "priceCents": 550,
+    "id": "cheesecake"
+  },
+  {
+    "emoji": "🥐",
+    "name": "Butter Croissant",
+    "priceCents": 320,
+    "id": "croissant"
+  },
+  {
+    "emoji": "🧃",
+    "name": "Cold Brew Bottle",
+    "priceCents": 440,
+    "id": "coldbrew"
+  },
+  {
+    "emoji": "🫘",
+    "name": "House Blend Beans",
+    "priceCents": 1200,
+    "id": "beans"
+  }
+]}

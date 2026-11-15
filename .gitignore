@@ -1,0 +1,23 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+
+# Xcode
+ios/build/
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# OS
+.DS_Store
+
+# Go (backend/): binaries from go build
+backend/brew-backend
+backend/backend
+*.test
+coverage.out

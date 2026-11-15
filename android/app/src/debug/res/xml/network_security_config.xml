@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: cleartext to any host, so a phone on Wi-Fi can reach the backend on your computer's IP.
+     See android/README.md, "Phone over Wi-Fi". -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

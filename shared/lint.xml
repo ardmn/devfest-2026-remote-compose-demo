@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!--
+      RestrictedApi is an error in shared (build.gradle.kts): Brew's sections (brew.remote) use the public
+      Remote Compose API only. One exception, on purpose: brew.lab, the shader showcase. In alpha23 a shader can only be
+      written with @RestrictTo API (the creation DSL's shader {}), so that package — and only that package — is exempt.
+    -->
+    <issue id="RestrictedApi">
+        <ignore path="src/main/kotlin/brew/lab/**" />
+    </issue>
+</lint>
