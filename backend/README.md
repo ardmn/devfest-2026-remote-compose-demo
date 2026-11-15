@@ -78,7 +78,8 @@ can show different banners. The apps page through `hero?i=<id>` for the ids they
 | `promo` | the JSON promo, converted |
 | `promo.json` | the JSON promo |
 
-Documents are `application/vnd.remotecompose`, never cached (`no-store`). Unknown sections and ids are 404; ids
+Documents are `application/vnd.remotecompose`, never cached (`no-store`), and gzip-compressed for clients that send
+`Accept-Encoding: gzip` (OkHttp and URLSession do it themselves; favorites: 6.6 KB → 1.9 KB on the wire). Unknown sections and ids are 404; ids
 from clients are only looked up in the manifest, never used as file names. Errors are logged in full and answered
 without details.
 

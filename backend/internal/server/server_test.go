@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -562,4 +563,71 @@ func rcName() string {
 		return "rc.bat"
 	}
 	return "rc"
+}
+
+// A real-sized document goes out gzip-compressed to a client that asks for it, and plain to one that does not.
+func TestBigBodiesAreGzippedForClientsThatAskForIt(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	doc := "\x00" + strings.Repeat("a remote compose document ", 100)
+	write(t, filepath.Join(f.dir, "documents", "favorites.rc"), doc)
+	srv := httptest.NewServer(f.s.Handler())
+	defer srv.Close()
+	// DisableCompression: see the bytes on the wire, as Go's client would otherwise unpack them silently.
+	client := &http.Client{Transport: &http.Transport{DisableCompression: true}}
+	get := func(acceptEncoding string) (http.Header, []byte) {
+		t.Helper()
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/sections/favorites", http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if acceptEncoding != "" {
+			req.Header.Set("Accept-Encoding", acceptEncoding)
+		}
+		res, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = res.Body.Close() }()
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res.Header, body
+	}
+
+	h, body := get("gzip, deflate, br")
+	if h.Get("Content-Encoding") != "gzip" || !strings.Contains(h.Get("Vary"), "Accept-Encoding") {
+		t.Fatalf("headers %v", h)
+	}
+	if len(body) >= len(doc) {
+		t.Errorf("gzip body %d B, plain %d B", len(body), len(doc))
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, err := io.ReadAll(zr)
+	if err != nil || string(plain) != doc {
+		t.Errorf("unpacked %d B, err %v", len(plain), err)
+	}
+
+	for _, ae := range []string{"", "identity", "gzip;q=0", "br"} {
+		h, body := get(ae)
+		if h.Get("Content-Encoding") != "" || string(body) != doc {
+			t.Errorf("Accept-Encoding %q: Content-Encoding %q, %d B", ae, h.Get("Content-Encoding"), len(body))
+		}
+	}
+}
+
+func TestAcceptsGzip(t *testing.T) {
+	t.Parallel()
+	for header, want := range map[string]bool{
+		"": false, "gzip": true, "GZIP": true, "br, gzip": true, "gzip;q=0.5": true, "*": true,
+		"gzip;q=0": false, "gzip; q=0.000": false, "identity": false, "deflate, br": false,
+	} {
+		if got := acceptsGzip(header); got != want {
+			t.Errorf("%q: %v, want %v", header, got, want)
+		}
+	}
 }
