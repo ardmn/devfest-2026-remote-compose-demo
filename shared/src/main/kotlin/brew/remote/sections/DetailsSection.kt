@@ -19,9 +19,10 @@ import brew.remote.components.StepButton
 import brew.remote.components.ToppingChip
 
 /**
- * The whole product page: header, options, quantity and a live total. Options, quantity and toppings are document state
- * (MutableRemoteFloat) — the player keeps it, nothing goes back to the server. After every change the document reports the new total,
- * quantity and size to the app (named host actions with a float value), which draws the sticky total bar and puts the line in the cart.
+ * The whole product page: header, options and quantity. Options, quantity and toppings are document state (MutableRemoteFloat) —
+ * the player keeps it, nothing goes back to the server. After every change the document reports the choice — quantity, size and the
+ * toppings bit mask — to the app (named host actions with a float value). The app prices that choice from its own catalog, draws the
+ * sticky total bar and puts the line in the cart: money is never taken from a document.
  */
 @RemoteComposable
 @Composable
@@ -34,22 +35,14 @@ internal fun DetailsSection(id: String) {
     val ice = remember { listOf(MutableRemoteFloat(1f), MutableRemoteFloat(0f), MutableRemoteFloat(0f)) }
     val tOn = remember { TOPPINGS.map { MutableRemoteFloat(0f) } }
 
-    var extras: RemoteFloat = large * 0.6f.rf
-    TOPPINGS.forEachIndexed { k, t -> extras = extras + tOn[k] * t.price.rf }
-    val total = (extras + d.price.rf) * qty
-    // An expression's value refreshes on the next frame, so a tap first copies it into a plain
-    // variable (evaluated
-    // now, from the values the same tap just set) and sends that.
-    val totalNow = remember { MutableRemoteFloat(d.price) }
-    // The toppings as a bit mask, copied into a plain variable on each tap like the total.
+    // The toppings as a bit mask. An expression's value refreshes on the next frame, so a tap first copies it into a plain
+    // variable (evaluated now, from the values the same tap just set) and sends that.
     var mask: RemoteFloat = 0f.rf
     TOPPINGS.indices.forEach { k -> mask = mask + tOn[k] * (1 shl k).toFloat().rf }
     val maskNow = remember { MutableRemoteFloat(0f) }
     val report =
         listOf(
-            valueChange(remoteState = totalNow, updatedValue = total),
             valueChange(remoteState = maskNow, updatedValue = mask),
-            hostAction(name = BrewSections.TOTAL_ACTION.rs, value = totalNow),
             hostAction(name = BrewSections.QTY_ACTION.rs, value = qty),
             hostAction(name = BrewSections.LARGE_ACTION.rs, value = large),
             hostAction(name = BrewSections.TOPPINGS_ACTION.rs, value = maskNow),

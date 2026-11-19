@@ -59,7 +59,7 @@ adb pull /sdcard/Android/data/brew.app/files/lab/. ios/Brew/Resources/sections/
 | `Brew/Catalog.generated.swift` | catalog generated from `shared/` by the same script; a `tools/` test fails when it is stale |
 
 The documents ask through host actions (`add_to_cart:<id>`, `toggle_favorite:<id>`, `category:<key>`,
-`open_details:<id>`; the product page sends `total`, `qty`, `large` and the `toppings` bit mask as numbers) and show app state through named
+`open_details:<id>`; the product page sends `qty`, `large` and the `toppings` bit mask as numbers; the app prices them from its catalog) and show app state through named
 colours the app pushes (`fav_<id>`, `cat_<key>`) — colours because this player's controller sets floats, strings and
 colours, not integers.
 

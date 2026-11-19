@@ -36,7 +36,7 @@ object BrewDocuments {
     suspend fun row(context: Context, id: String): ByteArray =
         captureSection(context = context, heightDp = BrewSections.ROW_H) { RowSection(id = id) }
 
-    /** The whole product page: header, options, quantity and a live total the document reports to the app. */
+    /** The whole product page: header, options and quantity; the document reports the choice, the app prices it. */
     suspend fun details(context: Context, id: String): ByteArray =
         captureSection(context = context, heightDp = BrewSections.detailsHeight(id)) { DetailsSection(id = id) }
 }

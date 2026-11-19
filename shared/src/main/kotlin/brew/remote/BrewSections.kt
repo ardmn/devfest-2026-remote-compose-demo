@@ -7,7 +7,7 @@ import brew.remote.BrewCatalog.drink
  * it reports. The sections themselves are the @RemoteComposable functions in brew.remote.sections (built from brew.remote.components);
  * turning them into document bytes is the job of brew.capture (on Android, with a Context) or tools/ (on a plain JVM, for the server).
  *
- * Interaction that stays inside a section (radio buttons, toppings, quantity, the total) is document state; anything the app owns (cart,
+ * Interaction that stays inside a section (radio buttons, toppings, quantity) is document state; anything the app owns (cart,
  * favourites, navigation, filters) is a host action or a named value the app pushes.
  */
 object BrewSections {
@@ -32,7 +32,6 @@ object BrewSections {
     // app shows its own
     // price (BrewCatalog.unitCents) from QTY / LARGE / TOPPINGS; TOTAL is the document's own sum,
     // for display checks.
-    const val TOTAL_ACTION = "total"
     const val QTY_ACTION = "qty"
     const val LARGE_ACTION = "large"
     /** Selected toppings as a bit mask over BrewCatalog.TOPPINGS (bit k = topping k). */

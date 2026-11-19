@@ -60,12 +60,12 @@ gradle/    one version catalog for the Gradle builds (shared, tools, android)
 ```
  backend ──bytes──▶ document (Remote Compose)  ──asks: hostAction("add_to_cart:mocha") ──▶ app (native)
                      draws, animates, keeps its own      ◀── pushes: named values ("fav_mocha" = red) ──
-                     state (quantity, options, total)          decides: cart, navigation, favourites
+                     state (quantity, options)                 decides: cart, navigation, favourites
 ```
 
 - **The document draws and asks; the app decides.** A tap in a section sends a named *host action*; the app's code
-  (cart, navigation, favourites) handles it and pushes the result back as *named values*. Quantity, options and
-  the price math live inside the product-page document.
+  (cart, navigation, favourites) handles it and pushes the result back as *named values*. Quantity and options
+  live inside the product-page document; it reports the choice, and the app prices it from its own catalog.
 - **Documents are made two ways, like in a real pipeline:**
   1. **Kotlin → binary, at build time.** Sections are `@RemoteComposable` Kotlin functions (`shared/…/brew/remote`).
      `go run ./cmd/demo render` renders them into `.rc` files on a plain JVM — no Android, no emulator — and the Go server

@@ -34,7 +34,7 @@ import brew.remote.BrewColors
 
 /**
  * A radio group: one MutableRemoteFloat per option (1 = selected). A tap sets its own to 1 and the others to 0, plus [extra] (e.g.
- * reporting the new total). The dot's colour is tween(clear, tan, selected) — drawn from a float, which both the androidx and the iOS
+ * reporting the new size to the app). The dot's colour is tween(clear, tan, selected) — drawn from a float, which both the androidx and the iOS
  * player redraw on change.
  */
 @RemoteComposable

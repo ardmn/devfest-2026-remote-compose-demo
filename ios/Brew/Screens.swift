@@ -159,7 +159,7 @@ struct DetailsView: View {
 
     var body: some View {
         ScrollView {
-            // The whole product page is one Remote Compose document: options, quantity and the total live inside it.
+            // The whole product page is one Remote Compose document: options and quantity live inside it; the total below is priced by the app.
             RemoteSection(path: "details?id=\(id.urlQueryValue)", height: Heights.details(id), fresh: true)
         }
         .background(alignment: .top) { Brand.tan.frame(height: 400).ignoresSafeArea() }
