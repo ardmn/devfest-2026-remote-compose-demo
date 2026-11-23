@@ -28,6 +28,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     testOptions { unitTests.isIncludeAndroidResources = true }
+    lint {
+        // Every lint warning fails the build, except the ones recorded in lint-baseline.xml when this was turned on
+        // (regenerate on purpose only: delete the file and run :app:lintDebug once).
+        warningsAsErrors = true
+        baseline = file("lint-baseline.xml")
+        // "A newer version is available" depends on the day the build runs, not on the code.
+        disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
+    }
     packaging { resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/{AL2.0,LGPL2.1}") }
 }
 

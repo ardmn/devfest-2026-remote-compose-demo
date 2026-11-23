@@ -27,7 +27,10 @@ android {
     lint {
         // RestrictedApi is an error: the sections must stay on the public Remote Compose API...
         error += "RestrictedApi"
-        warningsAsErrors = false
+        // Every other warning fails too (there are none today); new ones would go to a lint-baseline.xml only on
+        // purpose. "A newer version is available" depends on the day the build runs, not on the code.
+        warningsAsErrors = true
+        disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
         // ...except brew.lab, the shader showcase (lint.xml).
         lintConfig = file("lint.xml")
     }
