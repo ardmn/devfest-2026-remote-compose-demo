@@ -227,39 +227,55 @@ def check_osv() -> int:
     """Known vulnerabilities in go.mod, Package.resolved and what the Gradle builds ship.
 
     The Gradle builds keep no lockfiles. Gradle writes them for this scan (ci/dependency-locks.init.gradle.kts) for the
-    shipped configurations only, into a temporary directory outside the repo that is always deleted. They are passed
-    with -L: `scan source -r` skips git-ignored files, and the repo ignores lockfiles nowhere else. Accepted findings
-    are listed, with reasons, in osv-scanner.toml.
+    shipped configurations only, into a temporary directory outside the repo, and they are passed to OSV-Scanner with
+    --lockfile (`scan source -r` would skip git-ignored files, and the temporary directory is not in the tree anyway).
+    --write-locks also makes Gradle write a settings-gradle.lockfile next to each settings file (the version catalog);
+    those, like the temporary directory, are deleted afterwards. Accepted findings, if any, are in osv-scanner.toml.
     """
     init = REPO / "ci" / "dependency-locks.init.gradle.kts"
-    with tempfile.TemporaryDirectory(prefix="osv-locks-") as locks:
-        for build in ("android", "tools"):
-            code = run(
-                [
-                    gradlew(build),
-                    "--console=plain",
-                    "-q",
-                    # The task reads configurations while it runs, which the configuration cache does not allow.
-                    "--no-configuration-cache",
-                    "--init-script",
-                    init,
-                    f"-PosvLockDir={locks}",
-                    "--write-locks",
-                    "osvLocks",
-                ],
-                cwd=REPO / build,
-            )
-            if code != 0:
-                print(f"osv: writing the {build} dependency locks failed (exit {code})")
-                return code
-        lockfiles = sorted(Path(locks).glob("**/gradle.lockfile"))
-        if not lockfiles:
-            print(f"osv: Gradle wrote no lockfiles into {locks}")
-            return 1
-        scan = [tool("osv-scanner"), "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
-        for lockfile in lockfiles:
-            scan += ["--lockfile", lockfile]
-        return run([*scan, "."])
+    builds = ("android", "tools")
+    in_tree_before = set(in_tree_lockfiles(builds))
+    try:
+        with tempfile.TemporaryDirectory(prefix="osv-locks-") as locks:
+            for build in builds:
+                code = run(
+                    [
+                        gradlew(build),
+                        "--console=plain",
+                        "-q",
+                        # The task reads configurations while it runs, which the configuration cache does not allow.
+                        "--no-configuration-cache",
+                        "--init-script",
+                        init,
+                        f"-PosvLockDir={locks}",
+                        "--write-locks",
+                        "osvLocks",
+                    ],
+                    cwd=REPO / build,
+                )
+                if code != 0:
+                    print(f"osv: writing the {build} dependency locks failed (exit {code})")
+                    return code
+            lockfiles = sorted(Path(locks).glob("**/gradle.lockfile"))
+            if not lockfiles:
+                print(f"osv: Gradle wrote no lockfiles into {locks}")
+                return 1
+            scan = [tool("osv-scanner"), "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
+            for lockfile in lockfiles:
+                scan += ["--lockfile", lockfile]
+            return run([*scan, "."])
+    finally:
+        for stray in set(in_tree_lockfiles(builds)) - in_tree_before:
+            stray.unlink(missing_ok=True)
+
+
+def in_tree_lockfiles(builds: tuple[str, ...]) -> list[Path]:
+    """Gradle lockfiles in the Gradle builds' directories and their projects' (not build/ outputs)."""
+    found: list[Path] = []
+    for build in builds:
+        for pattern in ("*.lockfile", "*/*.lockfile"):
+            found += (REPO / build).glob(pattern)
+    return found
 
 
 def java() -> Path:
