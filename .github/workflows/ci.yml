@@ -16,25 +16,35 @@ concurrency:
 
 jobs:
   go:
-    name: Go (backend) — golangci-lint, vet, govulncheck, tests
+    name: Go (backend) — golangci-lint, vet, tests, govulncheck
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.25.8"
-          # The backend has no dependencies (no go.sum), nothing for setup-go to cache.
-          cache: false
+          # The toolchain line of go.mod (one place for the Go release); check.py pins GOTOOLCHAIN to it as well.
+          go-version-file: backend/go.mod
+          # No go.sum (no dependencies): go.mod keys the module and build cache (govulncheck, the race build).
+          cache-dependency-path: backend/go.mod
+      # The end-to-end test (TestTheRealBackend) runs the real rc tool; with CI set it fails instead of skipping.
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-provider: basic
+      - run: ./gradlew --console=plain installDist
+        working-directory: tools
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/ci-tools
           key: ci-tools-${{ runner.os }}-${{ hashFiles('ci/check.py') }}
+      # go run ./cmd/demo lint -check (golangci-lint fmt --diff + run, go vet, go test -race), then govulncheck.
       - run: python3 ci/check.py go
-      - run: go test -race -count=1 ./...
-        working-directory: backend
 
   kotlin:
     name: Kotlin (tools, shared, android) — tests, ktfmt, Android Lint, detekt

@@ -4,7 +4,8 @@ Hands out Brew's sections as Remote Compose documents. The Android and iOS apps 
 
 ## Run
 
-You need [Go](https://go.dev/dl) 1.25+ (macOS: `brew install go`) and a JDK 17+ for the JSON converter (Android Studio
+You need [Go](https://go.dev/dl) 1.26+ (macOS: `brew install go`; Go 1.21+ downloads the release `go.mod` pins by
+itself) and a JDK 17+ for the JSON converter (Android Studio
 bundles one; it is found by itself).
 
 ```bash
@@ -30,7 +31,7 @@ Ctrl+C stops it (gracefully: requests in flight finish).
 |---|---|
 | `serve [-lan] [-port N]` | builds the rc tool if needed, `adb reverse`, starts the server (Ctrl+C stops it gracefully) |
 | `render` | renders the Kotlin sections for `stage.json` (tools/), writes the iOS catalog and the iOS app's offline copies |
-| `lint` | `golangci-lint fmt` + `golangci-lint run` (`.golangci.yml`), `go vet`, `go test -race` |
+| `lint [-check]` | `golangci-lint fmt` + `golangci-lint run` (`.golangci.yml`), `go vet`, `go test -race`; `-check` reports unformatted files and fails instead of formatting them (CI) |
 
 The server alone: `go run ./cmd/brew-backend` (flags: `-port`, `-lan`, `-rc`, `-documents`, `-dump <dir>`).
 
@@ -105,5 +106,7 @@ go test -race ./...       # unit tests + end-to-end tests with the real rc tool 
 go run ./cmd/demo lint    # golangci-lint fmt (gofumpt, goimports) + run (.golangci.yml) + vet + tests
 ```
 
-`lint` needs [golangci-lint](https://golangci-lint.run/welcome/install) v2 (`brew install golangci-lint`). The tests that
-fake the rc tool are shell scripts and are skipped on Windows.
+`lint` needs [golangci-lint](https://golangci-lint.run/welcome/install) v2 (`brew install golangci-lint`, or
+`-golangci-lint <path>`). CI runs it as `python3 ci/check.py go`: `lint -check` with the pinned golangci-lint, then
+govulncheck, all on the Go release `go.mod` pins. The tests that fake the rc tool are shell scripts and are skipped on
+Windows; the end-to-end test is skipped when the rc tool is not built, except in CI (`CI` set), where it fails.

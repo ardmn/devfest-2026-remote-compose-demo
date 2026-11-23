@@ -30,7 +30,7 @@ cd backend
 go run ./cmd/demo serve
 ```
 
-A small Go server. You need [Go](https://go.dev/dl) 1.25+ and a JDK 17+ (Android Studio bundles one; it is found by
+A small Go server. You need [Go](https://go.dev/dl) 1.26+ and a JDK 17+ (Android Studio bundles one; it is found by
 itself). The first start builds the JSON converter (about a minute). When you see `Brew backend listening`, pull to
 refresh on the app's Home — every pull shows a new random choice of banners. Edit the promo in
 [`backend/stage.json`](backend/stage.json) and pull again; after changing banners, favourites or the Kotlin sections,

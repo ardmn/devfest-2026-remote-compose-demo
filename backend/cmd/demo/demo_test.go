@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -133,6 +134,31 @@ func TestUsage(t *testing.T) {
 	}
 	if err := run(t.Context(), []string{"serve", "-nope"}, io.Discard); err == nil {
 		t.Error("serve accepted an unknown flag")
+	}
+	if err := run(t.Context(), []string{"lint", "-nope"}, io.Discard); err == nil {
+		t.Error("lint accepted an unknown flag")
+	}
+}
+
+// lint formats in place for a developer; -check (CI) only reports a diff and fails. The rest is the same.
+func TestLintSteps(t *testing.T) {
+	t.Parallel()
+	local, check := lintSteps("gl", false), lintSteps("gl", true)
+	if got := strings.Join(local[0], " "); got != "gl fmt" {
+		t.Errorf("format step = %q, want %q", got, "gl fmt")
+	}
+	if got := strings.Join(check[0], " "); got != "gl fmt --diff" {
+		t.Errorf("-check format step = %q, want %q", got, "gl fmt --diff")
+	}
+	want := []string{"gl run", "go vet ./...", "go test -race -count=1 ./..."}
+	for name, steps := range map[string][][]string{"lint": local, "lint -check": check} {
+		var rest []string
+		for _, s := range steps[1:] {
+			rest = append(rest, strings.Join(s, " "))
+		}
+		if strings.Join(rest, "; ") != strings.Join(want, "; ") {
+			t.Errorf("%s runs %q after formatting, want %q", name, rest, want)
+		}
 	}
 }
 

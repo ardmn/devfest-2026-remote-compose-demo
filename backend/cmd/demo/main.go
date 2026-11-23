@@ -3,7 +3,7 @@
 //
 //	go run ./cmd/demo serve [-lan] [-port N]  build the rc tool if needed, adb reverse, start the server
 //	go run ./cmd/demo render                  turn the Kotlin sections into documents + the iOS app's bundled copies
-//	go run ./cmd/demo lint                    format, lint, vet and test the backend
+//	go run ./cmd/demo lint [-check]           format, lint, vet and test the backend
 //
 // It needs Go and, for anything Kotlin (the rc tool), a JDK 17+: JAVA_HOME, java on the PATH, or the JDK bundled with
 // Android Studio — found by itself.
@@ -24,7 +24,9 @@ const usage = `go run ./cmd/demo <command>
 
   serve [-lan] [-port N]  build the rc tool if needed, adb reverse, start the server (Ctrl+C stops it)
   render                  turn the Kotlin sections into documents for stage.json, plus the iOS catalog and copies
-  lint                    golangci-lint fmt + run, go vet, go test -race`
+  lint [-check] [-golangci-lint PATH]
+                          golangci-lint fmt + run, go vet, go test -race; -check: fmt --diff, fail instead of
+                          formatting (CI)`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -54,7 +56,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 	case "render":
 		return render(ctx, e, out)
 	case "lint":
-		return lint(ctx, e, out)
+		return lint(ctx, e, args[1:], out)
 	default:
 		return errUsage
 	}

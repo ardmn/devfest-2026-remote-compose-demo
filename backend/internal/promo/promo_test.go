@@ -28,8 +28,6 @@ const testTemplate = `{
   ] } }
 }`
 
-func ptr[T any](v T) *T { return &v }
-
 func promoStage(title, badge, color *string, discount *int, drinks []string) stage.Promo {
 	return stage.Promo{Title: title, Badge: badge, Color: color, Discount: discount, Drinks: drinks}
 }
@@ -62,7 +60,7 @@ func TestBuildPromo(t *testing.T) {
 		},
 		{
 			name:      "stage values",
-			stage:     promoStage(ptr("Live"), ptr("BADGE"), ptr("#FF000000"), ptr(50), []string{"americano", "beans"}),
+			stage:     promoStage(new("Live"), new("BADGE"), new("#FF000000"), new(50), []string{"americano", "beans"}),
 			wantRows:  []string{"americano", "beans"},
 			wantTexts: []string{`"Live"`, `"BADGE"`, `"#FF000000"`, `$3.50 → $1.75`, `$12.00 → $6.00`},
 		},
@@ -74,13 +72,13 @@ func TestBuildPromo(t *testing.T) {
 		},
 		{
 			name:      "discount above 90 is capped",
-			stage:     promoStage(nil, nil, nil, ptr(500), []string{"mocha"}),
+			stage:     promoStage(nil, nil, nil, new(500), []string{"mocha"}),
 			wantRows:  []string{"mocha"},
 			wantTexts: []string{`"−90%"`, `$4.90 → $0.49`},
 		},
 		{
 			name:      "negative discount is 0",
-			stage:     promoStage(nil, nil, nil, ptr(-30), []string{"mocha"}),
+			stage:     promoStage(nil, nil, nil, new(-30), []string{"mocha"}),
 			wantRows:  []string{"mocha"},
 			wantTexts: []string{`"−0%"`, `$4.90 → $4.90`},
 		},
@@ -92,13 +90,13 @@ func TestBuildPromo(t *testing.T) {
 		},
 		{
 			name:      "a value containing a placeholder is not expanded again",
-			stage:     promoStage(ptr("{{badge}} {{color}}"), ptr("B"), ptr("C"), nil, []string{}),
+			stage:     promoStage(new("{{badge}} {{color}}"), new("B"), new("C"), nil, []string{}),
 			wantRows:  nil,
 			wantTexts: []string{`"{{badge}} {{color}}"`},
 		},
 		{
 			name:      "JSON-special characters stay valid JSON",
-			stage:     promoStage(ptr(`"quoted" \ <b>&`), nil, nil, nil, []string{}),
+			stage:     promoStage(new(`"quoted" \ <b>&`), nil, nil, nil, []string{}),
 			wantRows:  nil,
 			wantTexts: []string{`"\"quoted\" \\ <b>&"`},
 		},
@@ -130,7 +128,7 @@ func TestBuildPromo(t *testing.T) {
 
 func TestBuildPromoKeepsNumbersAndIsDeterministic(t *testing.T) {
 	t.Parallel()
-	s := promoStage(ptr("T"), nil, nil, nil, []string{"mocha", "chai"})
+	s := promoStage(new("T"), nil, nil, nil, []string{"mocha", "chai"})
 	first, err := Build([]byte(testTemplate), s, testCatalog)
 	if err != nil {
 		t.Fatal(err)

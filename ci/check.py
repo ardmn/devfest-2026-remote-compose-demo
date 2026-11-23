@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import os
 import platform
+import re
 import shutil
 import stat
 import subprocess
@@ -156,9 +157,9 @@ def tool(name: str) -> Path:
     return exe
 
 
-def run(args: list[str | Path], cwd: Path = REPO) -> int:
+def run(args: list[str | Path], cwd: Path = REPO, env: dict[str, str] | None = None) -> int:
     print(f"$ (cd {cwd.relative_to(REPO) if cwd != REPO else '.'}) {' '.join(str(a) for a in args)}", flush=True)
-    return subprocess.run([str(a) for a in args], cwd=cwd, check=False).returncode
+    return subprocess.run([str(a) for a in args], cwd=cwd, env=env, check=False).returncode
 
 
 def gradlew(build: str) -> Path:
@@ -223,16 +224,28 @@ def check_detekt() -> int:
     )
 
 
+def go_toolchain() -> str:
+    """The exact Go release backend/go.mod pins (its toolchain line), e.g. go1.26.11."""
+    match = re.search(r"^toolchain (go\S+)", (REPO / "backend" / "go.mod").read_text(), re.MULTILINE)
+    if match is None:
+        raise SystemExit("backend/go.mod has no toolchain line: check.py go runs on exactly that Go release")
+    return match.group(1)
+
+
 def check_go() -> int:
+    """`go run ./cmd/demo lint -check` (the one list of Go checks: golangci-lint fmt --diff + run, vet, tests) with the
+    pinned golangci-lint, then govulncheck.
+
+    Every step runs on the Go release go.mod pins. GOTOOLCHAIN=auto would keep a newer Go installed here, and
+    govulncheck would then check that release's standard library, not the one the backend is built and tested with.
+    """
     backend = REPO / "backend"
-    linter = tool("golangci-lint")
+    env = {**os.environ, "GOTOOLCHAIN": go_toolchain()}
     for step in (
-        [linter, "fmt", "--diff"],  # prints the diff and fails if any file is not formatted
-        [linter, "run"],
-        ["go", "vet", "./..."],
+        ["go", "run", "./cmd/demo", "lint", "-check", "-golangci-lint", tool("golangci-lint")],
         ["go", "run", GOVULNCHECK, "./..."],
     ):
-        code = run(step, cwd=backend)
+        code = run(step, cwd=backend, env=env)
         if code != 0:
             return code
     return 0
