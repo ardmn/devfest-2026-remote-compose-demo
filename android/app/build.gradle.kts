@@ -33,8 +33,10 @@ android {
         // (regenerate on purpose only: delete the file and run :app:lintDebug once).
         warningsAsErrors = true
         baseline = file("lint-baseline.xml")
-        // "A newer version is available" depends on the day the build runs, not on the code.
-        disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
+        // Off: checks that can fail with no code change (the date, the network, the installed SDK). One list for app and
+        // shared, with the reasons: config/lint-volatile-checks.txt.
+        val volatileChecks = rootProject.file("../config/lint-volatile-checks.txt").readLines().map(String::trim)
+        disable += volatileChecks.filterNot { it.isEmpty() || it.startsWith("#") }
     }
     packaging { resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/{AL2.0,LGPL2.1}") }
 }

@@ -27,12 +27,14 @@ android {
     lint {
         // RestrictedApi is an error: the sections must stay on the public Remote Compose API...
         error += "RestrictedApi"
-        // Every other warning fails too (there are none today); new ones would go to a lint-baseline.xml only on
-        // purpose. "A newer version is available" depends on the day the build runs, not on the code.
-        warningsAsErrors = true
-        disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
         // ...except brew.lab, the shader showcase (lint.xml).
         lintConfig = file("lint.xml")
+        // Every other warning fails too. There are none today and shared has no lint baseline: fix new ones.
+        warningsAsErrors = true
+        // Off: checks that can fail with no code change (the date, the network, the installed SDK). One list for app and
+        // shared, with the reasons: config/lint-volatile-checks.txt.
+        val volatileChecks = rootProject.file("../config/lint-volatile-checks.txt").readLines().map(String::trim)
+        disable += volatileChecks.filterNot { it.isEmpty() || it.startsWith("#") }
     }
 }
 

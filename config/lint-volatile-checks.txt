@@ -1,0 +1,23 @@
+# Android Lint checks turned off in android/app and shared (both build.gradle.kts files read this list; there is no
+# other copy). Each of them can start failing a build with no change to the code, because it depends on the date, on
+# what is published, on Google's Play SDK Index (fetched over the network) or on the SDK installed on the machine:
+# warnings are errors (warningsAsErrors), so CI would go red on its own. Vulnerable dependencies are caught by
+# OSV-Scanner instead (python3 ci/check.py osv). Issue ids as in Android Lint 9.5.1 (GradleDetector).
+
+# A newer version exists of AGP, a dependency, or the target SDK
+AndroidGradlePluginVersion
+GradleDependency
+NewerVersionAvailable
+OldTargetApi
+
+# Google Play's target SDK deadline (a date)
+ExpiringTargetSdkVersion
+ExpiredTargetSdkVersion
+
+# Google Play SDK Index (network): outdated, risky, deprecated, non-compliant or vulnerable SDK versions
+OutdatedLibrary
+RiskyLibrary
+PlaySdkIndexDeprecated
+PlaySdkIndexGenericIssues
+PlaySdkIndexNonCompliant
+PlaySdkIndexVulnerability
