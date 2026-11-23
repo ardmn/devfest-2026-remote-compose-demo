@@ -14,6 +14,7 @@ Standard library only, Python 3.9+.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import os
 import platform
 import re
@@ -173,6 +174,8 @@ def tool(name: str) -> Path:
             download.unlink()
         unpacked = staging / inner
         unpacked.chmod(unpacked.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        if exe.exists():  # another check.py run installed it meanwhile: keep that one
+            return exe
         if home.exists():  # an incomplete install left by an older check.py
             shutil.rmtree(home)
         try:
@@ -196,8 +199,8 @@ def fetch(url: str, dest: Path, attempts: int = 4) -> None:
             e.close()
             if e.code < 500 and e.code != 429:
                 raise CheckError(f"download failed: {url}: HTTP {e.code}") from e
-            error: OSError = e
-        except OSError as e:  # URLError, connection resets, timeouts (socket.timeout is an OSError on 3.9)
+            error: Exception = e
+        except (OSError, http.client.HTTPException) as e:  # URLError, resets, timeouts, a truncated body
             error = e
         if attempt == attempts:
             raise CheckError(f"download failed after {attempts} attempts: {url}: {error}") from error
