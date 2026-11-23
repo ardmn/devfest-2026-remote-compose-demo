@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ktfmt)
+    alias(libs.plugins.detekt)
 }
 
 // The Remote Compose UI of the Brew demo, shared by the backend (which captures it into documents)
@@ -27,9 +28,14 @@ android {
     lint {
         // RestrictedApi is an error: the sections must stay on the public Remote Compose API...
         error += "RestrictedApi"
-        warningsAsErrors = false
         // ...except brew.lab, the shader showcase (lint.xml).
         lintConfig = file("lint.xml")
+        // Every other warning fails too. There are none today and shared has no lint baseline: fix new ones.
+        warningsAsErrors = true
+        // Off: checks that can fail with no code change (the date, the network, the installed SDK). One list for app and
+        // shared, with the reasons: config/lint-volatile-checks.txt.
+        val volatileChecks = rootProject.file("../config/lint-volatile-checks.txt").readLines().map(String::trim)
+        disable += volatileChecks.filterNot { it.isEmpty() || it.startsWith("#") }
     }
 }
 
@@ -49,4 +55,14 @@ dependencies {
 ktfmt {
     kotlinLangStyle()
     maxWidth.set(140)
+}
+
+// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
+// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew :shared:detekt checks,
+// :shared:detektBaseline rewrites the baseline (on purpose only; review its diff).
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("../config/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    source.setFrom("src")
 }

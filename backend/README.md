@@ -4,8 +4,8 @@ Hands out Brew's sections as Remote Compose documents. The Android and iOS apps 
 
 ## Run
 
-You need [Go](https://go.dev/dl) 1.25+ (macOS: `brew install go`) and a JDK 17+ for the JSON converter (Android Studio
-bundles one; it is found by itself).
+You need [Go](https://go.dev/dl) 1.21 or newer (macOS: `brew install go`): it downloads and runs the release `go.mod`
+pins, Go 1.26.11, by itself. And a JDK 17+ for the JSON converter (Android Studio bundles one; it is found by itself).
 
 ```bash
 go run ./cmd/demo serve        # 127.0.0.1:8080 — this computer, the iOS simulator, Android emulators/USB phones
@@ -30,7 +30,7 @@ Ctrl+C stops it (gracefully: requests in flight finish).
 |---|---|
 | `serve [-lan] [-port N]` | builds the rc tool if needed, `adb reverse`, starts the server (Ctrl+C stops it gracefully) |
 | `render` | renders the Kotlin sections for `stage.json` (tools/), writes the iOS catalog and the iOS app's offline copies |
-| `lint` | `golangci-lint fmt` + `golangci-lint run` (`.golangci.yml`), `go vet`, `go test -race` |
+| `lint [-check]` | `golangci-lint fmt` + `golangci-lint run` (`.golangci.yml`), `go vet`, `go test -race`, each even when an earlier one fails; `-check` reports unformatted files and fails instead of formatting them |
 
 The server alone: `go run ./cmd/brew-backend` (flags: `-port`, `-lan`, `-rc`, `-documents`, `-dump <dir>`).
 
@@ -96,14 +96,23 @@ internal/documents/  documents/manifest.json and catalog.json
 internal/stage/      stage.json
 ```
 
-Standard library only. Logging with `log/slog`, routing with `http.ServeMux` patterns.
+Standard library only (the one module requirement, golang.org/x/vuln, is the govulncheck tool, not linked into
+the server). Logging with `log/slog`, routing with `http.ServeMux` patterns.
 
 ## Test and lint
 
 ```bash
-go test -race ./...       # unit tests + end-to-end tests with the real rc tool (skipped if it is not built)
-go run ./cmd/demo lint    # golangci-lint fmt (gofumpt, goimports) + run (.golangci.yml) + vet + tests
+go test -race ./...           # unit tests + end-to-end tests with the real rc tool (skipped if it is not built)
+go run ./cmd/demo lint        # golangci-lint fmt (gofumpt, goimports) + run (.golangci.yml) + vet + tests
+go run ./cmd/demo lint -check # the same, but unformatted code fails instead of being formatted
+go tool govulncheck ./...     # known vulnerabilities in the code's call graph and the Go standard library
 ```
 
-`lint` needs [golangci-lint](https://golangci-lint.run/welcome/install) v2 (`brew install golangci-lint`). The tests that
-fake the rc tool are shell scripts and are skipped on Windows.
+`lint` uses [golangci-lint](https://golangci-lint.run/welcome/install) v2 from the PATH; CI uses 2.15.0 (pinned in
+`.github/workflows/ci.yml`), so install that one:
+`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0` (or `brew install golangci-lint`, which
+may be newer). govulncheck is a Go tool of this module: `go.mod` pins its version and `go.sum` its bytes, nothing to
+install. CI runs fmt, golangci-lint, vet, the tests and govulncheck as separate steps ([ci/README.md](../ci/README.md)).
+
+The tests that fake the rc tool are shell scripts and are skipped on Windows. The end-to-end test is skipped when the
+rc tool is not built, except with `BREW_REQUIRE_RC_TOOL=1` (CI sets it after building the tool), where it fails.

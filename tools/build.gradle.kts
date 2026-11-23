@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     application
     alias(libs.plugins.ktfmt)
+    alias(libs.plugins.detekt)
 }
 
 // rc — the Kotlin half of the server pipeline. A plain JVM program: no Android SDK, no emulator, no
@@ -121,4 +122,14 @@ tasks.test {
 ktfmt {
     kotlinLangStyle()
     maxWidth.set(140)
+}
+
+// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
+// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew detekt checks,
+// detektBaseline rewrites the baseline (on purpose only; review its diff).
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("../config/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    source.setFrom("src")
 }

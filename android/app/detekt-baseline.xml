@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ShowcaseApp.kt:@Composable fun ShowcaseApp</ID>
+    <ID>ForEachOnRange:LabTab.kt:0 until p.childCount</ID>
+    <ID>ForEachOnRange:Sections.kt:0 until p.childCount</ID>
+    <ID>LongMethod:LabTab.kt:@Composable fun LabTab</ID>
+    <ID>LongMethod:ShowcaseApp.kt:@Composable fun ShowcaseApp</ID>
+    <ID>MagicNumber:Sections.kt:SectionSource$6</ID>
+    <ID>TooManyFunctions:ShowcaseApp.kt:brew.app.ShowcaseApp.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

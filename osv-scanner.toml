@@ -1,0 +1,17 @@
+# OSV-Scanner config (version pinned in .github/workflows/ci.yml). Run: python3 ci/check.py osv
+#
+# What is scanned: backend/go.mod and go.sum, the iOS Package.resolved, and the Gradle dependencies that ship — the
+# Android app's debug and release runtime classpaths (with :shared's dependencies) and the rc tool's runtime
+# (ci/dependency-locks.init.gradle.kts). Build tools Gradle resolves into their own configurations (Android Lint,
+# ktfmt, detekt) are not scanned at all, so nothing here needs to accept their advisories.
+#
+# No accepted findings today: any advisory fails the scan. If one ever has to be accepted, scope it to the package and
+# version, with an expiry and the reason, never a bare [[IgnoredVulns]] id (that would hide the id in every package):
+#
+#   [[PackageOverrides]]
+#   ecosystem = "Maven"
+#   name = "group:artifact"
+#   version = "1.2.3"
+#   vulnerability.ignore = true
+#   effectiveUntil = 2027-01-31
+#   reason = "GHSA-…: why it does not apply, and what removes it"

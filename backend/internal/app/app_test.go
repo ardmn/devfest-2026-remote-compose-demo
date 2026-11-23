@@ -171,6 +171,10 @@ func TestDumpMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, statErr := os.Stat(tool); statErr != nil {
+		// CI builds the tool first and sets BREW_REQUIRE_RC_TOOL=1: a skip there would hide the -dump path.
+		if os.Getenv("BREW_REQUIRE_RC_TOOL") == "1" {
+			t.Fatalf("BREW_REQUIRE_RC_TOOL=1 but the rc tool is not built (%v): build it first (cd tools && ./gradlew installDist)", statErr)
+		}
 		t.Skip("the rc tool is not built (cd tools && ./gradlew installDist)")
 	}
 	out := t.TempDir()

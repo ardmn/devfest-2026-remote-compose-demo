@@ -49,31 +49,67 @@ func render(ctx context.Context, e env, out io.Writer) error {
 	return app.Run(ctx, []string{"-dump", ios, "-rc", e.rcTool()}, newLogger(out))
 }
 
-// lint formats, lints, vets and tests the backend (golangci-lint v2, config .golangci.yml).
-func lint(ctx context.Context, e env, out io.Writer) error {
+// lint formats, lints, vets and tests the backend (golangci-lint v2 from the PATH, config .golangci.yml). Every step
+// runs even when an earlier one fails, and the error lists each failure. CI runs the same steps as separate workflow
+// steps (.github/workflows/ci.yml); this is the local equivalent.
+//
+//	-check  only report unformatted files (golangci-lint fmt --diff, fails on a diff) instead of formatting them in
+//	        place
+//
+// It takes no positional arguments: `lint check` is refused (usage), so a mistyped -check never formats in place.
+func lint(ctx context.Context, e env, run runner, args []string, out io.Writer) error {
+	flags := flag.NewFlagSet("lint", flag.ContinueOnError)
+	flags.SetOutput(out)
+	check := flags.Bool("check", false, "report unformatted files and fail instead of formatting them")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() > 0 {
+		say(out, fmt.Sprintf("lint takes no arguments, got %q (did you mean -check?)", flags.Args()))
+		return errUsage
+	}
 	linter, err := e.lookPath("golangci-lint")
 	if err != nil {
-		return errors.New("golangci-lint not found: https://golangci-lint.run/welcome/install (macOS: brew install golangci-lint)")
+		return errors.New("golangci-lint not found on the PATH: install the version CI uses (ci/README.md), " +
+			"e.g. go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0")
 	}
 	var version strings.Builder
-	if err := runTool(ctx, &version, ".", "", linter, "version"); err != nil {
+	if err := run(ctx, &version, ".", "", linter, "version"); err != nil {
 		return err
 	}
 	if !isV2(version.String()) {
 		return fmt.Errorf("golangci-lint v2 is needed (.golangci.yml is a v2 config); found: %s", strings.TrimSpace(version.String()))
 	}
-	for _, step := range [][]string{
-		{linter, "fmt"},
-		{linter, "run"},
-		{"go", "vet", "./..."},
-		{"go", "test", "-race", "-count=1", "./..."},
-	} {
-		if err := runTool(ctx, out, ".", "", step[0], step[1:]...); err != nil {
-			return err
+	say(out, strings.TrimSpace(version.String()))
+	var failed []error
+	for _, step := range lintSteps(linter, *check) {
+		if err := run(ctx, out, ".", "", step[0], step[1:]...); err != nil {
+			say(out, "lint: FAILED: "+err.Error())
+			failed = append(failed, err)
 		}
+	}
+	if len(failed) > 0 {
+		return errors.Join(failed...)
 	}
 	say(out, "lint: all clean")
 	return nil
+}
+
+// runner runs a program the way runTool does; tests pass one that records the calls instead.
+type runner func(ctx context.Context, out io.Writer, dir, javaHome, name string, args ...string) error
+
+// lintSteps are the commands lint runs, in order; check makes the format step fail on a diff instead of formatting.
+func lintSteps(linter string, check bool) [][]string {
+	format := []string{linter, "fmt"}
+	if check {
+		format = append(format, "--diff")
+	}
+	return [][]string{
+		format,
+		{linter, "run"},
+		{"go", "vet", "./..."},
+		{"go", "test", "-race", "-count=1", "./..."},
+	}
 }
 
 // isV2 tells golangci-lint 2.x from older versions by its `version` output.

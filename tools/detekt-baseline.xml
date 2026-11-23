@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:ServerFiles.kt:ServerFiles$100f</ID>
+    <ID>MagicNumber:StageFile.kt:StageFile$0xFF000000</ID>
+    <ID>MagicNumber:StageFile.kt:StageFile$6</ID>
+    <ID>MagicNumber:StageFile.kt:StageFile$8</ID>
+    <ID>MagicNumber:SwiftCatalog.kt:SwiftCatalog$100f</ID>
+    <ID>MaxLineLength:Main.kt:"rc: the JVM's default charset is ${Charset.defaultCharset()}, not UTF-8 — run it with -Dfile.encoding=UTF-8 (build/install/rc/bin/rc does)"</ID>
+    <ID>TooGenericExceptionCaught:JsonDocument.kt:JsonDocument$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

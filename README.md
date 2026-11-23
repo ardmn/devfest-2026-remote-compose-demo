@@ -30,11 +30,12 @@ cd backend
 go run ./cmd/demo serve
 ```
 
-A small Go server. You need [Go](https://go.dev/dl) 1.25+ and a JDK 17+ (Android Studio bundles one; it is found by
-itself). The first start builds the JSON converter (about a minute). When you see `Brew backend listening`, pull to
-refresh on the app's Home — every pull shows a new random choice of banners. Edit the promo in
-[`backend/stage.json`](backend/stage.json) and pull again; after changing banners, favourites or the Kotlin sections,
-run `go run ./cmd/demo render` first. More: [backend/README.md](backend/README.md).
+A small Go server. You need [Go](https://go.dev/dl) 1.21+ (it runs the release `backend/go.mod` pins by itself) and a
+JDK 17+ (Android Studio bundles one; it is found by itself). The first start builds the JSON converter (about a
+minute). When you see `Brew backend listening`, pull to refresh on the app's Home — every pull shows a new random
+choice of banners. Edit the promo in [`backend/stage.json`](backend/stage.json) and pull again; after changing
+banners, favourites or the Kotlin sections, run `go run ./cmd/demo render` first. More:
+[backend/README.md](backend/README.md).
 
 The commands are Go programs, not shell scripts: the same on macOS, Linux and Windows. Checked on macOS and on Linux
 (rendering on Linux gives byte for byte the same documents); on Windows the Go and Gradle parts are built for it
@@ -53,6 +54,8 @@ backend/   the server (Go): serves the rendered documents, picks the banners, bu
 android/   Brew for Android (Jetpack Compose + the androidx Remote Compose player)
 ios/       Brew for iOS (SwiftUI + rc-players)
 gradle/    one version catalog for the Gradle builds (shared, tools, android)
+ci/        static analysis: what .github/workflows/ci.yml runs, and ci/check.py to run it locally
+config/    detekt's config (detekt.yml); the Android Lint checks off in app and shared (lint-volatile-checks.txt)
 ```
 
 ## How it works
@@ -97,12 +100,23 @@ gradle/    one version catalog for the Gradle builds (shared, tools, android)
 
 ## Check everything
 
+What CI runs (Linux; [ci/README.md](ci/README.md) has the details and the tool versions):
+
 ```bash
-cd backend && go run ./cmd/demo lint                         # Go: format, golangci-lint, vet, tests (-race)
-cd tools && ./gradlew test                                   # rendering, the committed documents are current, JSON → .rc
-cd android && ./gradlew :app:ktfmtCheck :app:lintDebug :shared:lintDebug   # style, lint (RestrictedApi is an error)
+cd backend && go run ./cmd/demo lint -check && go tool govulncheck ./...   # fmt --diff, golangci-lint, vet, tests -race; vulnerabilities
+cd tools && ./gradlew --continue test ktfmtCheck detekt   # rendering, the committed documents are current, JSON → .rc; style; detekt
+cd android && ./gradlew --continue :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug :app:detekt :shared:detekt
+python3 ci/check.py gitleaks osv swiftlint swift-format   # with the tools on the PATH; swift-format: macOS only, not in CI
+```
+
+CI builds the rc tool first (`cd tools && ./gradlew installDist`), so the backend's end-to-end test runs there. CI does
+not compile the iOS app or run swift-format (they need macOS and Xcode). Before pushing Swift changes, also run:
+
+```bash
 cd ios && xcodebuild -scheme Brew -destination 'generic/platform=iOS Simulator' build   # strict concurrency, warnings are errors
 ```
+
+Day to day, `cd backend && go run ./cmd/demo lint` formats the Go code in place and runs the same Go checks.
 
 ## License
 

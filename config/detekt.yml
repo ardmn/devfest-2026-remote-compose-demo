@@ -1,0 +1,19 @@
+# detekt (the Gradle plugin, version in gradle/libs.versions.toml), on top of detekt's default config, for android/app,
+# shared and tools. Run: cd android && ./gradlew :app:detekt :shared:detekt; cd tools && ./gradlew detekt.
+# ktfmt owns formatting; these settings only line detekt up with it and with Compose conventions.
+# Findings that existed when this was added are in each module's detekt-baseline.xml: only new ones fail.
+style:
+  MaxLineLength:
+    # ktfmt's maxWidth (build.gradle.kts of android/app, shared, tools).
+    maxLineLength: 140
+  MagicNumber:
+    # Sizes, colours and offsets inside composables are the UI itself, not hidden constants.
+    ignoreAnnotated: ['Composable']
+naming:
+  FunctionNaming:
+    # Composables are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+complexity:
+  LongParameterList:
+    # Composables take their styling as parameters by convention.
+    ignoreAnnotated: ['Composable']

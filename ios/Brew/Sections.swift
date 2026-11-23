@@ -16,11 +16,9 @@ extension String {
     }
 }
 
-/**
- Loads one section ("hero?i=0", "favorites", "details?id=caramel" …) from the backend — the very same bytes the
- Android app gets. Offline it falls back to the copy in the app bundle (written by go run ./cmd/demo render).
- On the main actor: several sections load at once, and all of them use the cache and the warning flag.
- */
+/// Loads one section ("hero?i=0", "favorites", "details?id=caramel" …) from the backend — the very same bytes the
+/// Android app gets. Offline it falls back to the copy in the app bundle (written by go run ./cmd/demo render).
+/// On the main actor: several sections load at once, and all of them use the cache and the warning flag.
 @MainActor
 enum SectionSource {
     static let baseURL = URL(string: "http://127.0.0.1:8080/sections/")!
@@ -28,11 +26,9 @@ enum SectionSource {
     /// Anything bigger is refused (the player's own limit is 32 MB unpacked).
     static let maxBytes = 32 * 1024 * 1024
 
-    /**
-     A basic check before the player sees the bytes: a Remote Compose document starts with its HEADER operation
-     (opcode 0) and is not absurdly small or large. The Android app runs a full structural check (DocumentValidator,
-     which also catches truncation); there is no Swift port of it yet.
-     */
+    /// A basic check before the player sees the bytes: a Remote Compose document starts with its HEADER operation
+    /// (opcode 0) and is not absurdly small or large. The Android app runs a full structural check (DocumentValidator,
+    /// which also catches truncation); there is no Swift port of it yet.
     static func looksValid(_ data: Data) -> Bool { data.count >= 16 && data.count <= maxBytes && data.first == 0 }
 
     /// [bundledOnly]: sections only the app bundle has (the Lab's shader documents are not served by the backend).
@@ -46,7 +42,8 @@ enum SectionSource {
         let name = path.replacingOccurrences(of: "?", with: "_").replacingOccurrences(of: "=", with: "-")
             .replacingOccurrences(of: ",", with: "+")
         if let url = Bundle.main.url(forResource: name, withExtension: "rc", subdirectory: "sections"),
-           let data = try? Data(contentsOf: url), looksValid(data) {
+            let data = try? Data(contentsOf: url), looksValid(data)
+        {
             let s = Section(data: data, origin: .bundled)
             cache[path] = s
             return s
@@ -62,7 +59,10 @@ enum SectionSource {
         do {
             let (data, resp) = try await URLSession.shared.data(for: req)
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            if warned { warned = false; print("Brew: backend reachable again at \(baseURL.absoluteString)") }
+            if warned {
+                warned = false
+                print("Brew: backend reachable again at \(baseURL.absoluteString)")
+            }
             guard code == 200 else {
                 print("Brew: the backend answered HTTP \(code) for /sections/\(path); using the bundled copy.")
                 return nil
@@ -88,16 +88,17 @@ enum SectionSource {
     private static func unreachable(_ reason: String) {
         guard !warned else { return }
         warned = true
-        print("""
-        Brew: backend not reachable at \(baseURL.absoluteString) (\(reason)).
-        The app keeps working with the copies bundled in the app (Brew/Resources/sections).
-        To get live sections from the server:
-          1. Start it:  cd backend && go run ./cmd/demo serve   (the first start builds the JSON converter, about a minute)
-          2. The simulator reaches it at 127.0.0.1:8080 directly. A real iPhone needs the computer's IP:
-             start it with  go run ./cmd/demo serve -lan  and set SectionSource.baseURL to http://<your-computer-ip>:8080/sections/
-          3. Check on the computer:  curl http://127.0.0.1:8080/sections/promo.json
-        Then pull to refresh on Home.
-        """)
+        print(
+            """
+            Brew: backend not reachable at \(baseURL.absoluteString) (\(reason)).
+            The app keeps working with the copies bundled in the app (Brew/Resources/sections).
+            To get live sections from the server:
+              1. Start it:  cd backend && go run ./cmd/demo serve   (the first start builds the JSON converter, about a minute)
+              2. The simulator reaches it at 127.0.0.1:8080 directly. A real iPhone needs the computer's IP:
+                 start it with  go run ./cmd/demo serve -lan  and set SectionSource.baseURL to http://<your-computer-ip>:8080/sections/
+              3. Check on the computer:  curl http://127.0.0.1:8080/sections/promo.json
+            Then pull to refresh on Home.
+            """)
     }
 
     /// Which banners the carousel shows, in order: the server picks them from its pool, a new random choice on every
@@ -109,8 +110,8 @@ enum SectionSource {
         req.timeoutInterval = 2
         req.cachePolicy = .reloadIgnoringLocalCacheData
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
-              (resp as? HTTPURLResponse)?.statusCode == 200,
-              let ids = try? JSONDecoder().decode([Int].self, from: data)
+            (resp as? HTTPURLResponse)?.statusCode == 200,
+            let ids = try? JSONDecoder().decode([Int].self, from: data)
         else { return offline }
         var seen = Set<Int>()
         let valid = ids.filter { (0..<100).contains($0) && seen.insert($0).inserted }.prefix(6)
