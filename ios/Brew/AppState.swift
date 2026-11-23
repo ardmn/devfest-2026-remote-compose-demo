@@ -56,18 +56,16 @@ struct Toast: Identifiable, Equatable {
     let undo: CartLine?
 }
 
-/**
- The app's own state. Documents never own it: they ask through host actions (add_to_cart:<id>,
- toggle_favorite:<id>, category:<key>, open_details:<id>) and show it through named colours the app pushes.
- */
+/// The app's own state. Documents never own it: they ask through host actions (add_to_cart:<id>,
+/// toggle_favorite:<id>, category:<key>, open_details:<id>) and show it through named colours the app pushes.
 @MainActor
 final class AppState: ObservableObject {
     @Published var cart: [CartLine] = []
     @Published var favorites: Set<String> = ["caramel", "cookie"]
-    @Published var category: String? = nil
+    @Published var category: String?
     @Published var tab = 0
     @Published var path: [Route] = []
-    @Published var toast: Toast? = nil
+    @Published var toast: Toast?
 
     // The options the product page reported last. The page's document does its own arithmetic for display; the price
     // the app charges is worked out here from the catalog — a document is untrusted input.
@@ -118,7 +116,9 @@ final class AppState: ObservableObject {
         guard let d = Catalog.find(arg) else { return print("Brew: ignored \(name): unknown action or id") }
         switch verb {
         case "open_details":
-            pageQty = 1; pageLarge = false; pageToppings = 0
+            pageQty = 1
+            pageLarge = false
+            pageToppings = 0
             path.append(.details(d.id))
         case "add_to_cart":
             add(d.id, qty: 1, unitCents: Catalog.unitCents(d, large: false, toppings: 0), note: "", text: "\(d.name) added to cart")
@@ -149,7 +149,8 @@ final class AppState: ObservableObject {
             note += Catalog.toppings.indices.filter { pageToppings & (1 << $0) != 0 }.map { Catalog.toppings[$0].name }
         }
         if !path.isEmpty { path.removeLast() }
-        add(d.id, qty: qty, unitCents: Catalog.unitCents(d, large: pageLarge, toppings: pageToppings),
+        add(
+            d.id, qty: qty, unitCents: Catalog.unitCents(d, large: pageLarge, toppings: pageToppings),
             note: note.joined(separator: " · "), text: "\(qty) × \(d.name) added to cart")
     }
 

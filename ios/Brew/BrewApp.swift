@@ -11,11 +11,9 @@ struct BrewApp: App {
     }
 }
 
-/**
- The native skeleton: tabs, navigation, cart, banner pager, pull to refresh, toast with Undo — plain SwiftUI.
- The content (banners, categories, product cards, lists, the product page) is Remote Compose from the server:
- the same documents the Android app plays.
- */
+/// The native skeleton: tabs, navigation, cart, banner pager, pull to refresh, toast with Undo — plain SwiftUI.
+/// The content (banners, categories, product cards, lists, the product page) is Remote Compose from the server:
+/// the same documents the Android app plays.
 struct RootView: View {
     @EnvironmentObject var app: AppState
 
@@ -25,9 +23,11 @@ struct RootView: View {
                 HomeView().tabItem { Label("Home", systemImage: "house.fill") }.tag(0)
                 MenuTab()
                     .tabItem { Label("Menu", systemImage: "list.bullet") }.tag(1)
-                ListTab(ids: Catalog.drinks.map(\.id).filter { app.favorites.contains($0) },
-                        empty: "No favourites yet. Tap the heart on any drink.")
-                    .tabItem { Label("Favorites", systemImage: "heart.fill") }.tag(2)
+                ListTab(
+                    ids: Catalog.drinks.map(\.id).filter { app.favorites.contains($0) },
+                    empty: "No favourites yet. Tap the heart on any drink."
+                )
+                .tabItem { Label("Favorites", systemImage: "heart.fill") }.tag(2)
                 LabView().tabItem { Label("Lab", systemImage: "sparkles") }.tag(4)
                 ProfileView().tabItem { Label("Profile", systemImage: "person.fill") }.tag(3)
             }
@@ -50,7 +50,9 @@ struct RootView: View {
 struct CartButton: View {
     @EnvironmentObject var app: AppState
     var body: some View {
-        Button { app.path.append(.cart) } label: {
+        Button {
+            app.path.append(.cart)
+        } label: {
             // The badge stays inside the button's bounds: iOS 26 toolbar buttons clip anything outside.
             Image(systemName: "cart.fill").foregroundStyle(Brand.ink)
                 .padding(.trailing, 8).padding(.top, 6)

@@ -13,11 +13,17 @@ struct HomeView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20)
                 Banners(refresh: refresh)
-                Header(title: "Categories") { app.category = nil; app.tab = 1 }
+                Header(title: "Categories") {
+                    app.category = nil
+                    app.tab = 1
+                }
                 RemoteSection(path: "categories", height: Heights.categories, refresh: refresh)
                 Header(title: "Favorites") { app.tab = 2 }
                 RemoteSection(path: "favorites", height: Heights.favorites, refresh: refresh)
-                Header(title: "For you") { app.category = nil; app.tab = 1 }
+                Header(title: "For you") {
+                    app.category = nil
+                    app.tab = 1
+                }
                 RemoteSection(path: "for-you", height: Heights.forYou, refresh: refresh)
                 // Written by the backend as JSON (backend/promo.json), converted to a binary document on the server.
                 RemoteSection(path: "promo", height: Heights.promo, refresh: refresh).padding(.top, 20)
@@ -25,7 +31,10 @@ struct HomeView: View {
                     .font(.caption2).foregroundStyle(Brand.muted).padding(.top, 20).padding(.bottom, 16)
             }
         }
-        .refreshable { refresh += 1; try? await Task.sleep(nanoseconds: 500_000_000) }
+        .refreshable {
+            refresh += 1
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
     }
 }
 
@@ -103,7 +112,9 @@ struct MenuTab: View {
 
     private func chip(_ key: String?, _ label: String) -> some View {
         let on = app.category == key
-        return Button { app.category = key } label: {
+        return Button {
+            app.category = key
+        } label: {
             Text(label).font(.subheadline.weight(on ? .semibold : .regular)).foregroundStyle(Brand.ink)
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(Capsule().fill(on ? Brand.tanSoft : Color.white))
@@ -172,7 +183,9 @@ struct DetailsView: View {
                     Text(price(cents: app.pageTotalCents(id))).font(.title.bold()).foregroundStyle(Brand.ink)
                 }
                 Spacer()
-                Button { app.order(id) } label: {
+                Button {
+                    app.order(id)
+                } label: {
                     Text("Add to cart").font(.headline).foregroundStyle(.white)
                         .frame(width: 180, height: 56).background(Capsule().fill(Brand.tanDark))
                 }
@@ -240,11 +253,9 @@ struct CartView: View {
     }
 }
 
-/**
- The Lab: the Android app's GPU-shader documents (AGSL), played by rc-players on the iPhone — to see whether and how
- they work here. The bytes are the very same files the Android app builds (bundled: lab_i-N.rc; the backend doesn't
- serve them). Note: rc-players runs shaders without an allow-list; the androidx player needs one (setShaderControl).
- */
+/// The Lab: the Android app's GPU-shader documents (AGSL), played by rc-players on the iPhone — to see whether and how
+/// they work here. The bytes are the very same files the Android app builds (bundled: lab_i-N.rc; the backend doesn't
+/// serve them). Note: rc-players runs shaders without an allow-list; the androidx player needs one (setShaderControl).
 struct LabView: View {
     /// Titles and heights generated from shared/…/brew/lab/LabDocuments.kt (Catalog.generated.swift).
     private let cards = LabCards.all
