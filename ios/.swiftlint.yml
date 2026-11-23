@@ -1,4 +1,4 @@
-# SwiftLint 0.65.1 (pinned in ci/check.py). Run: python3 ci/check.py swiftlint (from the repo root).
+# SwiftLint 0.65.1 (pinned in .github/workflows/ci.yml). Run: python3 ci/check.py swiftlint (from the repo root).
 # swift-format (.swift-format) owns formatting; SwiftLint is for everything else. Findings that existed when this was
 # added are in swiftlint-baseline.json: only new ones fail. Regenerate it only on purpose (see ci/README.md).
 included:

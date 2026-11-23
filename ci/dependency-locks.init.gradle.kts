@@ -1,4 +1,5 @@
 // Used only by ci/check.py osv: `./gradlew --init-script <this> -PosvLockDir=<dir> --write-locks osvLocks`.
+// Configuration-cache safe.
 //
 // Turns on dependency locking for the configurations whose dependencies end up in what this repo ships, and only
 // those: the Android app's runtime classpaths (which include :shared's dependencies, a composite build) and the rc
@@ -21,8 +22,11 @@ allprojects {
     val dir = rootProject.name + if (path == ":") "" else path.replace(':', '-')
     dependencyLocking { lockFile.set(File(lockDir, "$dir/gradle.lockfile")) }
     configurations.matching { it.name in names }.configureEach { resolutionStrategy.activateDependencyLocking() }
-    // Resolving the graphs (no artifacts downloaded) is what writes the locks under --write-locks.
+    // Resolving the graphs (no artifacts downloaded) is what writes the locks under --write-locks. The task gets them
+    // as providers when it is configured and never touches the project while it runs (Task.project at execution time
+    // is deprecated and breaks the configuration cache).
     tasks.register("osvLocks") {
-        doLast { names.forEach { project.configurations.getByName(it).incoming.resolutionResult.allComponents } }
+        val graphs = names.map { configurations.getByName(it).incoming.resolutionResult.rootComponent }
+        doLast { graphs.forEach { it.get() } }
     }
 }

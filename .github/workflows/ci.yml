@@ -1,7 +1,9 @@
 # Tests and static analysis on Linux: the Go backend, the Kotlin tools/shared/android code, secrets, Swift lint. The
 # iOS app is not compiled here (no macOS runner), and no Android APK is assembled; ci/README.md lists exactly what
 # runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
-# Tool versions are pinned in ci/check.py and backend/go.mod, actions by commit SHA.
+# Within a job each check is its own step with `if: ${{ !cancelled() }}`, so one failing check does not hide the others.
+# Versions: actions by commit SHA; golangci-lint, gitleaks, OSV-Scanner and SwiftLint here (each once, with the
+# SHA-256 of the download); govulncheck in backend/go.mod; detekt and ktfmt in gradle/libs.versions.toml.
 name: CI
 
 on:
@@ -20,20 +22,26 @@ concurrency:
 
 jobs:
   go:
-    name: Go (backend) — golangci-lint, vet, tests, govulncheck
+    name: Go (backend) — golangci-lint, fmt, vet, tests, govulncheck
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          # The toolchain line of go.mod (one place for the Go release); check.py pins GOTOOLCHAIN to it as well.
+          # The toolchain line of go.mod: the one place for the Go release.
           go-version-file: backend/go.mod
-          # No go.sum (no dependencies): go.mod keys the module and build cache (govulncheck, the race build).
-          cache-dependency-path: backend/go.mod
-      # The end-to-end test (TestTheRealBackend) runs the real rc tool; with CI set it fails instead of skipping.
+          # Module and build cache (govulncheck and its dependencies, the race build).
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+      # The end-to-end test (TestTheRealBackend) runs the real rc tool; BREW_REQUIRE_RC_TOOL=1 makes it fail, not skip,
+      # when the tool is missing.
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
@@ -41,15 +49,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           cache-provider: basic
-      - run: ./gradlew --console=plain installDist
+      - name: Build the rc tool (for the end-to-end test)
+        run: ./gradlew --console=plain installDist
         working-directory: tools
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Installs golangci-lint (puts it on the PATH for the fmt step) and runs `golangci-lint run` (.golangci.yml).
+      - name: golangci-lint run
+        if: ${{ !cancelled() }}
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          # Per job: each job downloads different tools, and a cache key is saved only by the first job to finish.
-          path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
-      # go run ./cmd/demo lint -check (golangci-lint fmt --diff + run, go vet, go test -race), then govulncheck.
-      - run: python3 ci/check.py go
+          version: v2.15.0
+          working-directory: backend
+      # Unformatted code fails: the diff is printed, nothing is rewritten (gofumpt, goimports per .golangci.yml).
+      - name: Formatting (golangci-lint fmt --diff)
+        if: ${{ !cancelled() }}
+        run: golangci-lint fmt --diff
+      - name: go vet
+        if: ${{ !cancelled() }}
+        run: go vet ./...
+      - name: Tests (race detector)
+        if: ${{ !cancelled() }}
+        env:
+          BREW_REQUIRE_RC_TOOL: "1"
+        run: go test -race -count=1 ./...
+      # A Go tool of the module: go.mod pins its version, go.sum its bytes.
+      - name: govulncheck
+        if: ${{ !cancelled() }}
+        run: go tool govulncheck ./...
 
   kotlin:
     name: Kotlin (tools, shared, android) — tests, ktfmt, Android Lint, detekt, OSV-Scanner
@@ -67,20 +92,31 @@ jobs:
         with:
           # The MIT-licensed provider on top of actions/cache: free for public and private repositories.
           cache-provider: basic
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
-      # Renders every section and checks the committed documents and the iOS catalog are current.
-      - run: ./gradlew --console=plain test ktfmtCheck
+      # --continue: every task runs even when another one fails, and Gradle reports all failures.
+      # The tests render every section and check the committed documents and the iOS catalog are current.
+      - name: tools — tests, ktfmt, detekt
+        if: ${{ !cancelled() }}
+        run: ./gradlew --console=plain --continue test ktfmtCheck detekt
         working-directory: tools
-      - run: ./gradlew --console=plain :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug
+      - name: android, shared — ktfmt, Android Lint, detekt
+        if: ${{ !cancelled() }}
+        run: >-
+          ./gradlew --console=plain --continue
+          :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug :app:detekt :shared:detekt
         working-directory: android
-      - run: python3 ci/check.py detekt
       # OSV-Scanner here, not in the security job: the Gradle daemon is warm and the dependencies are downloaded, so
-      # writing the lockfiles costs a configuration, not a second Java + Gradle setup. Still a full configuration
-      # (the init script changes the build), which no cheaper route avoids while the repo keeps no lockfiles.
-      - run: python3 ci/check.py osv
+      # writing the lockfiles costs a configuration, not a second Java + Gradle setup.
+      - name: Dependencies (OSV-Scanner)
+        if: ${{ !cancelled() }}
+        env:
+          VERSION: 2.7.1
+          SHA256: fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/bin/osv-scanner" "https://github.com/google/osv-scanner/releases/download/v$VERSION/osv-scanner_linux_amd64"
+          echo "$SHA256  $RUNNER_TEMP/bin/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/osv-scanner"
+          PATH="$RUNNER_TEMP/bin:$PATH" python3 ci/check.py --require-tools osv
 
   security:
     name: Secrets — gitleaks
@@ -89,26 +125,37 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # gitleaks scans every commit, not only the last one.
+          # gitleaks scans every commit reachable from the checked-out HEAD (--log-opts=HEAD), not every fetched
+          # branch, so a stale branch cannot turn unrelated runs red.
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
-      - run: python3 ci/check.py gitleaks
+      - name: Secrets in the history (gitleaks)
+        env:
+          VERSION: 8.30.1
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/gitleaks.tar.gz" "https://github.com/gitleaks/gitleaks/releases/download/v$VERSION/gitleaks_${VERSION}_linux_x64.tar.gz"
+          echo "$SHA256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --redact --no-banner --exit-code 1 --log-opts=HEAD .
 
   swift:
     name: Swift (ios) — SwiftLint
-    # Linux: SwiftLint's static build needs no Xcode. swift-format runs with Xcode's toolchain, locally (ci/README.md).
+    # Linux: SwiftLint's static build needs no Xcode. It skips the few rules that need SourceKit (they run on macOS).
+    # swift-format runs with Xcode's toolchain, locally (ci/README.md).
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
-      - run: python3 ci/check.py swiftlint
+      - name: SwiftLint
+        env:
+          VERSION: 0.65.1
+          SHA256: caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d
+        working-directory: ios
+        run: |
+          curl -sSfL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/swiftlint.zip" "https://github.com/realm/SwiftLint/releases/download/$VERSION/swiftlint_linux_amd64.zip"
+          echo "$SHA256  $RUNNER_TEMP/swiftlint.zip" | sha256sum -c -
+          unzip -q -o "$RUNNER_TEMP/swiftlint.zip" swiftlint-static -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/swiftlint-static" lint --strict --quiet --baseline swiftlint-baseline.json

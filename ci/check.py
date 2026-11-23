@@ -1,216 +1,60 @@
 #!/usr/bin/env python3
-"""Static analysis for the whole repo, the same on a laptop and in CI (.github/workflows/ci.yml).
+"""Runs the repo's static analysis locally, with the tools already installed on this machine.
 
-    python3 ci/check.py <check> [<check> ...]     # or: all
+    python3 ci/check.py [--require-tools] <check> [<check> ...]     # or: all
 
-Checks: gitleaks, osv, detekt, go, swiftlint, swift-format (macOS only), all.
-Every tool is pinned to an exact version below. Downloaded tools are checked against their SHA-256 and kept in
-.cache/ci-tools/ (git-ignored). Each check fails on findings that are not in its baseline, and also when it cannot run
-(a missing program, no pinned build for this platform, a failed download); the others still run. A check that does
-not apply on this OS is reported as SKIPPED. The script prints a summary and exits with the number of failed checks.
-Standard library only, Python 3.9+.
+Checks: gitleaks, osv, detekt, go, govulncheck, swiftlint, swift-format, all.
+
+Nothing is downloaded. Each check runs a program from the PATH (gitleaks, osv-scanner, golangci-lint, swiftlint), the
+Gradle wrapper (detekt; Gradle finds Java itself) or the Go command (`go run ./cmd/demo lint -check`,
+`go tool govulncheck`). The versions CI uses are in ci/README.md. A check whose program is missing, or that does not
+apply on this OS, is SKIPPED with the reason (with --require-tools a missing program FAILS instead: CI uses it); a
+check that finds something, or cannot run, FAILS. Every requested check runs; the script prints a summary and exits
+with the number of failed checks. Standard library only, Python 3.9+.
+
+CI (.github/workflows/ci.yml) runs most of these as its own steps and uses this script only for `osv`, which first has
+Gradle write lockfiles for the shipped dependencies.
 """
 
 from __future__ import annotations
 
-import hashlib
-import http.client
 import os
-import platform
 import re
 import shutil
-import stat
 import subprocess
 import sys
-import time
-import traceback
-import tarfile
 import tempfile
-import urllib.error
-import urllib.request
-import zipfile
+import traceback
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-CACHE = REPO / ".cache" / "ci-tools"
-
-# name -> version, {(os, arch): (url, sha256, archive kind, path of the executable inside the archive)}
-TOOLS = {
-    "gitleaks": (
-        "8.30.1",
-        {
-            ("darwin", "arm64"): (
-                "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz",
-                "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5",
-                "tar.gz",
-                "gitleaks",
-            ),
-            ("linux", "x86_64"): (
-                "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
-                "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
-                "tar.gz",
-                "gitleaks",
-            ),
-        },
-    ),
-    "osv-scanner": (
-        "2.7.1",
-        {
-            ("darwin", "arm64"): (
-                "https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_darwin_arm64",
-                "b22c02877a811c8f78956e8643efa554932b7378f590d13f8e97d4e9448a29f3",
-                "bin",
-                "osv-scanner",
-            ),
-            ("linux", "x86_64"): (
-                "https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64",
-                "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8",
-                "bin",
-                "osv-scanner",
-            ),
-        },
-    ),
-    "golangci-lint": (
-        "2.15.0",
-        {
-            ("darwin", "arm64"): (
-                "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-darwin-arm64.tar.gz",
-                "d1e409481a8ca846c4bc97e781eb5cb1bd5c23353a0b3977a1cbda1b1b6447d5",
-                "tar.gz",
-                "golangci-lint-2.15.0-darwin-arm64/golangci-lint",
-            ),
-            ("linux", "x86_64"): (
-                "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz",
-                "9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea",
-                "tar.gz",
-                "golangci-lint-2.15.0-linux-amd64/golangci-lint",
-            ),
-        },
-    ),
-    # A JVM program: the same file everywhere.
-    "detekt": (
-        "1.23.8",
-        {
-            ("any", "any"): (
-                "https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-cli-1.23.8-all.jar",
-                "2ce2ff952e150baf28a29cda70a363b0340b3e81a55f43e51ec5edffc3d066c1",
-                "bin",
-                "detekt-cli-1.23.8-all.jar",
-            ),
-        },
-    ),
-    "swiftlint": (
-        "0.65.1",
-        {
-            ("darwin", "arm64"): (
-                "https://github.com/realm/SwiftLint/releases/download/0.65.1/portable_swiftlint.zip",
-                "c1e429b0599cf1b516f369a2d9ec04eaf0e436f3c12b637df8851fa52ff694d0",
-                "zip",
-                "swiftlint",
-            ),
-            # The fully static build: no Swift toolchain needed. The few rules that need SourceKit are skipped
-            # (it says which); none of them is in the baseline, they still run on macOS.
-            ("linux", "x86_64"): (
-                "https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip",
-                "caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d",
-                "zip",
-                "swiftlint-static",
-            ),
-        },
-    ),
-}
-
-# Fetched by `go run` through the Go checksum database, so pinning the version pins the bytes.
-GOVULNCHECK = "golang.org/x/vuln/cmd/govulncheck@v1.9.0"
-
-
-class CheckError(Exception):
-    """The check cannot run here (a missing program, no pinned build, a failed download): it counts as failed."""
+# The Gradle builds whose directories --write-locks may leave lockfiles in (shared is included by android).
+GRADLE_BUILDS = ("android", "tools", "shared")
 
 
 class Skipped(Exception):
-    """The check does not apply on this machine; the message says why."""
+    """The check does not run here; the message says why."""
 
 
-def platform_key() -> tuple[str, str]:
-    machine = platform.machine().lower()
-    arch = {"amd64": "x86_64", "aarch64": "arm64"}.get(machine, machine)
-    return sys.platform, arch  # "darwin" or "linux"
+class Failed(Exception):
+    """The check cannot run (it counts as failed); the message says why."""
 
 
-def tool(name: str) -> Path:
-    """Returns the pinned executable (or jar) for `name`, downloading and verifying it on first use.
-
-    The download is verified and unpacked in a temporary directory next to the cache, which is renamed into place only
-    when complete: an interrupted download or extraction is never mistaken for an installed tool.
-    """
-    version, assets = TOOLS[name]
-    key = ("any", "any") if ("any", "any") in assets else platform_key()
-    if key not in assets:
-        raise CheckError(f"{name} {version}: no pinned build for {key[0]}/{key[1]}; add one to TOOLS in ci/check.py")
-    url, sha256, kind, inner = assets[key]
-    home = CACHE / f"{name}-{version}"
-    exe = home / inner
-    if exe.exists():
-        return exe
-    CACHE.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=f".{name}-{version}-", dir=CACHE))
-    try:
-        download = staging / ("download." + kind)
-        print(f"Downloading {name} {version}: {url}", flush=True)
-        fetch(url, download)
-        digest = hashlib.sha256(download.read_bytes()).hexdigest()
-        if digest != sha256:
-            raise CheckError(f"{name} {version}: SHA-256 mismatch for {url}: got {digest}, pinned {sha256}")
-        if kind == "bin":
-            download.rename(staging / inner)
-        elif kind == "tar.gz":
-            with tarfile.open(download) as archive:
-                archive.extract(archive.getmember(inner), staging)
-            download.unlink()
-        else:
-            with zipfile.ZipFile(download) as archive:
-                archive.extract(inner, staging)
-            download.unlink()
-        unpacked = staging / inner
-        unpacked.chmod(unpacked.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        if exe.exists():  # another check.py run installed it meanwhile: keep that one
-            return exe
-        if home.exists():  # an incomplete install left by an older check.py
-            shutil.rmtree(home)
-        try:
-            staging.rename(home)
-        except OSError:
-            if not exe.exists():  # else another check.py run installed it at the same time
-                raise
-    finally:
-        shutil.rmtree(staging, ignore_errors=True)
-    return exe
+REQUIRE_TOOLS = False
 
 
-def fetch(url: str, dest: Path, attempts: int = 4) -> None:
-    """Downloads url to dest, retrying network errors, timeouts and 5xx/429 answers (2, 4, 8 s apart)."""
-    for attempt in range(1, attempts + 1):
-        try:
-            with urllib.request.urlopen(url, timeout=120) as response, open(dest, "wb") as out:
-                shutil.copyfileobj(response, out)
-            return
-        except urllib.error.HTTPError as e:
-            e.close()
-            if e.code < 500 and e.code != 429:
-                raise CheckError(f"download failed: {url}: HTTP {e.code}") from e
-            error: Exception = e
-        except (OSError, http.client.HTTPException) as e:  # URLError, resets, timeouts, a truncated body
-            error = e
-        if attempt == attempts:
-            raise CheckError(f"download failed after {attempts} attempts: {url}: {error}") from error
-        delay = 2**attempt
-        print(f"Download failed ({error}); retrying in {delay} s", flush=True)
-        time.sleep(delay)
+def program(name: str, install: str) -> str:
+    """The program `name` from the PATH. Missing: SKIPPED, or FAILED with --require-tools."""
+    found = shutil.which(name)
+    if found is None:
+        message = f"{name} is not on the PATH ({install})"
+        raise Failed(message) if REQUIRE_TOOLS else Skipped(message)
+    return found
 
 
 def run(args: list[str | Path], cwd: Path = REPO, env: dict[str, str] | None = None) -> int:
-    print(f"$ (cd {cwd.relative_to(REPO) if cwd != REPO else '.'}) {' '.join(str(a) for a in args)}", flush=True)
+    where = "." if cwd == REPO else cwd.relative_to(REPO)
+    print(f"$ (cd {where}) {' '.join(str(a) for a in args)}", flush=True)
     return subprocess.run([str(a) for a in args], cwd=cwd, env=env, check=False).returncode
 
 
@@ -218,36 +62,39 @@ def gradlew(build: str) -> Path:
     return REPO / build / ("gradlew.bat" if os.name == "nt" else "gradlew")
 
 
-# --- checks: each returns the exit code of its first failing step (0 = clean) -------------------------------------
+def first_failure(*codes: int) -> int:
+    return next((c for c in codes if c != 0), 0)
+
+
+# --- checks: each returns an exit code (0 = clean) or raises Skipped / Failed --------------------------------------
 
 
 def check_gitleaks() -> int:
-    # Every commit of the history, not only the working tree. Known false positives would go to .gitleaksignore.
-    return run([tool("gitleaks"), "git", "--redact", "--no-banner", "--exit-code", "1", "."])
+    # The commits reachable from HEAD (not other fetched branches), redacted. False positives go to .gitleaksignore.
+    exe = program("gitleaks", "brew install gitleaks")
+    return run([exe, "git", "--redact", "--no-banner", "--exit-code", "1", "--log-opts=HEAD", "."])
 
 
 def check_osv() -> int:
-    """Known vulnerabilities in go.mod, Package.resolved and what the Gradle builds ship.
+    """Known vulnerabilities in go.mod/go.sum, Package.resolved and what the Gradle builds ship.
 
     The Gradle builds keep no lockfiles. Gradle writes them for this scan (ci/dependency-locks.init.gradle.kts) for the
     shipped configurations only, into a temporary directory outside the repo, and they are passed to OSV-Scanner with
-    --lockfile (`scan source -r` would skip git-ignored files, and the temporary directory is not in the tree anyway).
-    --write-locks also makes Gradle write a settings-gradle.lockfile next to each settings file (the version catalog);
-    those, like the temporary directory, are deleted afterwards. Accepted findings, if any, are in osv-scanner.toml.
+    --lockfile (`scan source -r` would skip git-ignored files). --write-locks also leaves a settings-gradle.lockfile
+    next to each settings file; lockfiles in the Gradle builds' directories are deleted before (a previous run that
+    was killed) and after. Accepted findings, if any, are in osv-scanner.toml.
     """
+    exe = program("osv-scanner", "brew install osv-scanner")
     init = REPO / "ci" / "dependency-locks.init.gradle.kts"
-    builds = ("android", "tools")
-    in_tree_before = set(in_tree_lockfiles(builds))
+    remove_stray_lockfiles()
     try:
         with tempfile.TemporaryDirectory(prefix="osv-locks-") as locks:
-            for build in builds:
+            for build in ("android", "tools"):
                 code = run(
                     [
                         gradlew(build),
                         "--console=plain",
                         "-q",
-                        # The task reads configurations while it runs, which the configuration cache does not allow.
-                        "--no-configuration-cache",
                         "--init-script",
                         init,
                         f"-PosvLockDir={locks}",
@@ -257,108 +104,73 @@ def check_osv() -> int:
                     cwd=REPO / build,
                 )
                 if code != 0:
-                    print(f"osv: writing the {build} dependency locks failed (exit {code})")
-                    return code
+                    raise Failed(f"writing the {build} dependency locks failed (exit {code})")
             lockfiles = sorted(Path(locks).glob("**/gradle.lockfile"))
             if not lockfiles:
-                print(f"osv: Gradle wrote no lockfiles into {locks}")
-                return 1
-            scan = [tool("osv-scanner"), "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
+                raise Failed(f"Gradle wrote no lockfiles into {locks}")
+            scan: list[str | Path] = [exe, "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
             for lockfile in lockfiles:
                 scan += ["--lockfile", lockfile]
             return run([*scan, "."])
     finally:
-        for stray in set(in_tree_lockfiles(builds)) - in_tree_before:
-            stray.unlink(missing_ok=True)
+        remove_stray_lockfiles()
 
 
-def in_tree_lockfiles(builds: tuple[str, ...]) -> list[Path]:
-    """Gradle lockfiles in the Gradle builds' directories and their projects' (not build/ outputs)."""
-    found: list[Path] = []
-    for build in builds:
-        for pattern in ("*.lockfile", "*/*.lockfile"):
-            found += (REPO / build).glob(pattern)
-    return found
-
-
-def java() -> Path:
-    """Java 17+: $JAVA_HOME/bin/java when JAVA_HOME is set (as Gradle does), else java on the PATH."""
-    java_home = os.environ.get("JAVA_HOME")
-    if java_home:
-        exe = Path(java_home) / "bin" / ("java.exe" if os.name == "nt" else "java")
-        if not exe.exists():
-            raise CheckError(f"JAVA_HOME is {java_home}, but it has no bin/java")
-    else:
-        found = shutil.which("java")
-        if found is None:
-            raise CheckError("Java 17+ not found: set JAVA_HOME or put java on the PATH")
-        exe = Path(found)
-    # `java -version` prints e.g. `openjdk version "17.0.12" ...` or, before Java 9, `java version "1.8.0_402"`.
-    banner = subprocess.run([str(exe), "-version"], capture_output=True, text=True, check=False).stderr
-    match = re.search(r'version "(?:1\.)?(\d+)', banner)
-    if match is None:
-        raise CheckError(f"cannot tell the Java version of {exe}: {banner.strip()!r}")
-    if int(match.group(1)) < 17:
-        raise CheckError(f"Java 17+ is needed; {exe} is Java {match.group(1)} (set JAVA_HOME to a JDK 17+)")
-    return exe
+def remove_stray_lockfiles() -> None:
+    """Deletes the lockfiles --write-locks leaves in the Gradle builds' directories (the repo keeps none)."""
+    for build in GRADLE_BUILDS:
+        for directory in ("", "*/"):
+            for name in ("gradle.lockfile", "settings-gradle.lockfile"):
+                for stray in (REPO / build).glob(directory + name):
+                    stray.unlink(missing_ok=True)
 
 
 def check_detekt() -> int:
-    sources = ",".join(["android/app/src", "shared/src", "tools/src"])
-    return run(
-        [
-            java(),
-            "-jar",
-            tool("detekt"),
-            "--input",
-            sources,
-            "--config",
-            "config/detekt.yml",
-            "--build-upon-default-config",
-            "--baseline",
-            "config/detekt-baseline.xml",
-        ]
+    """The detekt Gradle plugin in every Kotlin build (config/detekt.yml, each module's detekt-baseline.xml)."""
+    return first_failure(
+        run([gradlew("android"), "--console=plain", "--continue", ":app:detekt", ":shared:detekt"], REPO / "android"),
+        run([gradlew("tools"), "--console=plain", "detekt"], cwd=REPO / "tools"),
     )
 
 
-def go_toolchain() -> str:
-    """The exact Go release backend/go.mod pins (its toolchain line), e.g. go1.26.11."""
+def go() -> str:
+    return program("go", "https://go.dev/dl")
+
+
+def go_env() -> dict[str, str]:
+    """Runs on the exact Go release backend/go.mod pins (its toolchain line), as CI does: with GOTOOLCHAIN=auto a newer
+    local Go would be used instead, and govulncheck would check that release's standard library."""
     match = re.search(r"^toolchain (go\S+)", (REPO / "backend" / "go.mod").read_text(), re.MULTILINE)
     if match is None:
-        raise CheckError("backend/go.mod has no toolchain line: check.py go runs on exactly that Go release")
-    return match.group(1)
+        raise Failed("backend/go.mod has no toolchain line")
+    return {**os.environ, "GOTOOLCHAIN": match.group(1)}
 
 
 def check_go() -> int:
-    """`go run ./cmd/demo lint -check` (the one list of Go checks: golangci-lint fmt --diff + run, vet, tests) with the
-    pinned golangci-lint, then govulncheck.
+    """`go run ./cmd/demo lint -check`: golangci-lint fmt --diff + run, go vet, go test -race (each step runs)."""
+    exe = go()
+    program("golangci-lint", "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0")
+    return run([exe, "run", "./cmd/demo", "lint", "-check"], cwd=REPO / "backend", env=go_env())
 
-    Every step runs on the Go release go.mod pins. GOTOOLCHAIN=auto would keep a newer Go installed here, and
-    govulncheck would then check that release's standard library, not the one the backend is built and tested with.
-    """
-    backend = REPO / "backend"
-    env = {**os.environ, "GOTOOLCHAIN": go_toolchain()}
-    for step in (
-        ["go", "run", "./cmd/demo", "lint", "-check", "-golangci-lint", tool("golangci-lint")],
-        ["go", "run", GOVULNCHECK, "./..."],
-    ):
-        code = run(step, cwd=backend, env=env)
-        if code != 0:
-            return code
-    return 0
+
+def check_govulncheck() -> int:
+    # A Go tool of the backend module: go.mod pins its version, go.sum its bytes.
+    return run([go(), "tool", "govulncheck", "./..."], cwd=REPO / "backend", env=go_env())
 
 
 def check_swiftlint() -> int:
-    # Run from ios/: .swiftlint.yml and the baseline's paths are relative to it.
-    return run([tool("swiftlint"), "lint", "--strict", "--quiet", "--baseline", "swiftlint-baseline.json"], cwd=REPO / "ios")
+    # From ios/: .swiftlint.yml and the baseline's paths are relative to it.
+    exe = program("swiftlint", "brew install swiftlint; on Linux the static build from SwiftLint's releases")
+    return run([exe, "lint", "--strict", "--quiet", "--baseline", "swiftlint-baseline.json"], cwd=REPO / "ios")
 
 
 def check_swift_format() -> int:
-    """swift-format from the selected Xcode (6.4.4 in Xcode 27.2); no baseline, the code is clean."""
+    """swift-format from the selected Xcode; no baseline, the code is clean."""
     if sys.platform != "darwin":
-        raise Skipped("swift-format runs with Xcode's toolchain, on macOS only (see ci/README.md)")
+        raise Skipped("swift-format runs with Xcode's toolchain, on macOS only")
+    xcrun = program("xcrun", "install Xcode")
     files = sorted(p.name for p in (REPO / "ios" / "Brew").glob("*.swift") if not p.name.endswith(".generated.swift"))
-    return run(["xcrun", "swift-format", "lint", "--strict", *[f"Brew/{f}" for f in files]], cwd=REPO / "ios")
+    return run([xcrun, "swift-format", "lint", "--strict", *[f"Brew/{f}" for f in files]], cwd=REPO / "ios")
 
 
 CHECKS = {
@@ -366,19 +178,23 @@ CHECKS = {
     "osv": check_osv,
     "detekt": check_detekt,
     "go": check_go,
+    "govulncheck": check_govulncheck,
     "swiftlint": check_swiftlint,
     "swift-format": check_swift_format,
 }
 
 
 def main(argv: list[str]) -> int:
-    names = list(CHECKS) if argv == ["all"] else argv
+    global REQUIRE_TOOLS
+    REQUIRE_TOOLS = "--require-tools" in argv
+    args = [a for a in argv if a != "--require-tools"]
+    names = list(CHECKS) if args == ["all"] else args
     unknown = [n for n in names if n not in CHECKS]
     if not names or unknown:
-        print(f"usage: python3 ci/check.py <{'|'.join(CHECKS)}|all> ...", file=sys.stderr)
+        print(f"usage: python3 ci/check.py [--require-tools] <{'|'.join(CHECKS)}|all> ...", file=sys.stderr)
         return 2
     results: dict[str, str] = {}
-    failed = []
+    failed: list[str] = []
     for name in names:
         print(f"\n=== {name}", flush=True)
         try:
@@ -386,9 +202,9 @@ def main(argv: list[str]) -> int:
             result = "ok" if code == 0 else f"FAILED (exit {code})"
         except Skipped as e:
             code, result = 0, f"SKIPPED: {e}"
-        except CheckError as e:
+        except Failed as e:
             code, result = 1, f"FAILED: {e}"
-        except Exception as e:  # a bug here, or an OSError from a missing program: this check fails, the rest run
+        except Exception as e:  # a bug here, or an OSError starting a program: this check fails, the rest run
             traceback.print_exc()
             code, result = 1, f"FAILED: {type(e).__name__}: {e}"
         print(f"=== {name}: {result}", flush=True)
@@ -398,8 +214,8 @@ def main(argv: list[str]) -> int:
     print("\nSummary:")
     for name, result in results.items():
         print(f"  {name}: {result}")
-    if failed:
-        print(f"Failed: {', '.join(failed)}")
+    skipped = [n for n, r in results.items() if r.startswith("SKIPPED")]
+    print(f"{len(failed)} failed, {len(skipped)} skipped, {len(results) - len(failed) - len(skipped)} ok")
     return len(failed)
 
 

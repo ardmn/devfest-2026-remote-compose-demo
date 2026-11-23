@@ -22,5 +22,3 @@ backend/backend
 *.test
 coverage.out
 
-# Static analysis (ci/check.py): downloaded tools
-/.cache/
