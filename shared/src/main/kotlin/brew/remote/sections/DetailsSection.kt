@@ -19,10 +19,10 @@ import brew.remote.components.StepButton
 import brew.remote.components.ToppingChip
 
 /**
- * The whole product page: header, options and quantity. Options, quantity and toppings are document state (MutableRemoteFloat) —
- * the player keeps it, nothing goes back to the server. After every change the document reports the choice — quantity, size and the
- * toppings bit mask — to the app (named host actions with a float value). The app prices that choice from its own catalog, draws the
- * sticky total bar and puts the line in the cart: money is never taken from a document.
+ * The whole product page: header, options and quantity. Options, quantity and toppings are document state (MutableRemoteFloat) — the player
+ * keeps it, nothing goes back to the server. After every change the document reports the choice — quantity, size and the toppings bit mask
+ * — to the app (named host actions with a float value). The app prices that choice from its own catalog, draws the sticky total bar and
+ * puts the line in the cart: money is never taken from a document.
  */
 @RemoteComposable
 @Composable

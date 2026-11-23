@@ -7,8 +7,8 @@ import brew.remote.BrewCatalog.drink
  * it reports. The sections themselves are the @RemoteComposable functions in brew.remote.sections (built from brew.remote.components);
  * turning them into document bytes is the job of brew.capture (on Android, with a Context) or tools/ (on a plain JVM, for the server).
  *
- * Interaction that stays inside a section (radio buttons, toppings, quantity) is document state; anything the app owns (cart,
- * favourites, navigation, filters) is a host action or a named value the app pushes.
+ * Interaction that stays inside a section (radio buttons, toppings, quantity) is document state; anything the app owns (cart, favourites,
+ * navigation, filters) is a host action or a named value the app pushes.
  */
 object BrewSections {
     /** Width every section is laid out for, in dp (players scale it to the real width). */
