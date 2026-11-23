@@ -10,8 +10,10 @@ on:
 permissions:
   contents: read
 
+# A pull request's new push cancels its previous run. Pushes to main each get their own group (the commit SHA), so
+# every main commit is checked to the end and none is cancelled or left pending behind a newer one.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -41,8 +43,9 @@ jobs:
         working-directory: tools
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # Per job: each job downloads different tools, and a cache key is saved only by the first job to finish.
           path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ hashFiles('ci/check.py') }}
+          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
       # go run ./cmd/demo lint -check (golangci-lint fmt --diff + run, go vet, go test -race), then govulncheck.
       - run: python3 ci/check.py go
 
@@ -65,7 +68,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ hashFiles('ci/check.py') }}
+          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
       # Renders every section and checks the committed documents and the iOS catalog are current.
       - run: ./gradlew --console=plain test ktfmtCheck
         working-directory: tools
@@ -90,7 +93,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ hashFiles('ci/check.py') }}
+          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
       - run: python3 ci/check.py gitleaks
 
   swift:
@@ -105,5 +108,5 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/ci-tools
-          key: ci-tools-${{ runner.os }}-${{ hashFiles('ci/check.py') }}
+          key: ci-tools-${{ runner.os }}-${{ github.job }}-${{ hashFiles('ci/check.py') }}
       - run: python3 ci/check.py swiftlint
