@@ -20,6 +20,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -175,32 +176,42 @@ def check_gitleaks() -> int:
 
 
 def check_osv() -> int:
-    """Known vulnerabilities in go.mod, Package.resolved and the resolved Gradle dependency graphs.
+    """Known vulnerabilities in go.mod, Package.resolved and what the Gradle builds ship.
 
-    The Gradle builds keep no lockfiles, so this writes them for the scan (ci/dependency-locks.init.gradle.kts) and
-    deletes them afterwards. Accepted findings are listed, with reasons, in osv-scanner.toml.
+    The Gradle builds keep no lockfiles. Gradle writes them for this scan (ci/dependency-locks.init.gradle.kts) for the
+    shipped configurations only, into a temporary directory outside the repo that is always deleted. They are passed
+    with -L: `scan source -r` skips git-ignored files, and the repo ignores lockfiles nowhere else. Accepted findings
+    are listed, with reasons, in osv-scanner.toml.
     """
     init = REPO / "ci" / "dependency-locks.init.gradle.kts"
-    locks = [
-        REPO / "android" / "app" / "gradle.lockfile",
-        REPO / "android" / "settings-gradle.lockfile",
-        REPO / "shared" / "gradle.lockfile",
-        REPO / "tools" / "gradle.lockfile",
-        REPO / "tools" / "settings-gradle.lockfile",
-    ]
-    common = ["--console=plain", "-q", "--init-script", init, "--write-locks"]
-    try:
-        for build, tasks in (("android", [":app:dependencies", ":shared:dependencies"]), ("tools", ["dependencies"])):
-            code = subprocess.run(
-                [str(a) for a in [gradlew(build), *common, *tasks]], cwd=REPO / build, stdout=subprocess.DEVNULL, check=False
-            ).returncode
+    with tempfile.TemporaryDirectory(prefix="osv-locks-") as locks:
+        for build in ("android", "tools"):
+            code = run(
+                [
+                    gradlew(build),
+                    "--console=plain",
+                    "-q",
+                    # The task reads configurations while it runs, which the configuration cache does not allow.
+                    "--no-configuration-cache",
+                    "--init-script",
+                    init,
+                    f"-PosvLockDir={locks}",
+                    "--write-locks",
+                    "osvLocks",
+                ],
+                cwd=REPO / build,
+            )
             if code != 0:
                 print(f"osv: writing the {build} dependency locks failed (exit {code})")
                 return code
-        return run([tool("osv-scanner"), "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml", "."])
-    finally:
-        for lock in locks:
-            lock.unlink(missing_ok=True)
+        lockfiles = sorted(Path(locks).glob("**/gradle.lockfile"))
+        if not lockfiles:
+            print(f"osv: Gradle wrote no lockfiles into {locks}")
+            return 1
+        scan = [tool("osv-scanner"), "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
+        for lockfile in lockfiles:
+            scan += ["--lockfile", lockfile]
+        return run([*scan, "."])
 
 
 def check_detekt() -> int:

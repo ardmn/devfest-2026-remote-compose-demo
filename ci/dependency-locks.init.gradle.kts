@@ -1,4 +1,28 @@
-// Used only by ci/check.py osv: turns on dependency locking for every project of the build (and its included
-// builds), so `dependencies --write-locks` writes gradle.lockfile files with the fully resolved graph that
-// OSV-Scanner can read. The repo itself keeps no lockfiles; they are generated, scanned and deleted.
-allprojects { dependencyLocking { lockAllConfigurations() } }
+// Used only by ci/check.py osv: `./gradlew --init-script <this> -PosvLockDir=<dir> --write-locks osvLocks`.
+//
+// Turns on dependency locking for the configurations whose dependencies end up in what this repo ships, and only
+// those: the Android app's runtime classpaths (which include :shared's dependencies, a composite build) and the rc
+// tool's runtime (its runtime classpath, plus the remote-creation-compose AAR it unpacks). Build tools resolved into
+// their own configurations (Android Lint, ktfmt, the Kotlin compiler) are not locked, so OSV-Scanner never sees them.
+// The gradle.lockfile files go to <osvLockDir>/<build>[-<project>]/, outside the repo; check.py passes each one to
+// OSV-Scanner and deletes the directory. A configuration listed here that does not exist fails the task.
+val shipped =
+    mapOf(
+        "brew-android" to mapOf(":app" to listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")),
+        "rc" to mapOf(":" to listOf("runtimeClasspath", "aar")),
+    )
+
+allprojects {
+    val names = shipped[rootProject.name]?.get(path) ?: return@allprojects
+    // Read here, not at the top: the init script also runs for the included build (shared), which does not get -P.
+    val lockDir =
+        gradle.startParameter.projectProperties["osvLockDir"]
+            ?: error("dependency-locks.init.gradle.kts: pass -PosvLockDir=<directory> (ci/check.py osv does)")
+    val dir = rootProject.name + if (path == ":") "" else path.replace(':', '-')
+    dependencyLocking { lockFile.set(File(lockDir, "$dir/gradle.lockfile")) }
+    configurations.matching { it.name in names }.configureEach { resolutionStrategy.activateDependencyLocking() }
+    // Resolving the graphs (no artifacts downloaded) is what writes the locks under --write-locks.
+    tasks.register("osvLocks") {
+        doLast { names.forEach { project.configurations.getByName(it).incoming.resolutionResult.allComponents } }
+    }
+}

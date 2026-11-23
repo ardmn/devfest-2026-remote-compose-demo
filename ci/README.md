@@ -21,7 +21,7 @@ each tool once into `.cache/ci-tools/` (git-ignored) and checks its SHA-256. Ver
 | Swift (ios) | SwiftLint | 0.65.1 | `ios/.swiftlint.yml` | 22, in `ios/swiftlint-baseline.json` |
 | Swift | swift-format (Xcode 27.2's, 6.4.4) | Xcode | `ios/.swift-format` | 0 |
 | Whole repo, every commit | gitleaks | 8.30.1 | defaults | 0 |
-| go.mod, Package.resolved, Gradle | OSV-Scanner | 2.7.1 | `osv-scanner.toml` | 6 advisories accepted (build tools only) |
+| go.mod, Package.resolved, shipped Gradle classpaths | OSV-Scanner | 2.7.1 | `osv-scanner.toml` | 0, none accepted |
 
 **Baselines.** Findings that existed when an analyser was added are recorded; only new ones fail. Fix rather than
 re-baseline; regenerate a baseline only on purpose and review its diff:
@@ -33,8 +33,14 @@ re-baseline; regenerate a baseline only on purpose and review its diff:
   the date, not the code.
 
 **OSV and Gradle.** The Gradle builds keep no lockfiles. For the scan, `check.py osv` has Gradle write them with
-`ci/dependency-locks.init.gradle.kts` (the whole resolved graph, transitive dependencies included), scans them and
-deletes them. A new advisory against a pinned dependency fails the scan even when no code changed — that is the point.
+`ci/dependency-locks.init.gradle.kts` for the configurations that ship, and only those: the Android app's debug and
+release runtime classpaths (`:shared`'s dependencies included) and the rc tool's runtime (`runtimeClasspath` plus the
+`aar` it unpacks), transitive dependencies included. Build tools in their own configurations (Android Lint, ktfmt) are
+not scanned. The lockfiles go to a temporary directory outside the repo, are passed to OSV-Scanner with `--lockfile`
+(`scan source -r` skips git-ignored files) and are deleted afterwards. A new advisory against a shipped dependency
+fails the scan even when no code changed — that is the point. If one has to be accepted, add a `[[PackageOverrides]]`
+entry scoped to the package and version, with `effectiveUntil` and the reason (the template is in
+`osv-scanner.toml`); not `[[IgnoredVulns]]`, which ignores an id in every package.
 
 **swift-format** comes with Xcode, so it runs on macOS only and is not in CI (a macOS runner for one formatter check
 is not worth it; SwiftLint runs on Linux). Run it before pushing Swift changes: `python3 ci/check.py swift-format`;
