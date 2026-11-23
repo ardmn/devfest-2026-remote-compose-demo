@@ -5,8 +5,10 @@
 
 Checks: gitleaks, osv, detekt, go, swiftlint, swift-format (macOS only), all.
 Every tool is pinned to an exact version below. Downloaded tools are checked against their SHA-256 and kept in
-.cache/ci-tools/ (git-ignored). Each check fails (non-zero exit) on findings that are not in its baseline; the
-script exits with the number of failed checks. Standard library only, Python 3.9+.
+.cache/ci-tools/ (git-ignored). Each check fails on findings that are not in its baseline, and also when it cannot run
+(a missing program, no pinned build for this platform, a failed download); the others still run. A check that does
+not apply on this OS is reported as SKIPPED. The script prints a summary and exits with the number of failed checks.
+Standard library only, Python 3.9+.
 """
 
 from __future__ import annotations
@@ -19,8 +21,11 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
+import traceback
 import tarfile
 import tempfile
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -118,6 +123,14 @@ TOOLS = {
 GOVULNCHECK = "golang.org/x/vuln/cmd/govulncheck@v1.9.0"
 
 
+class CheckError(Exception):
+    """The check cannot run here (a missing program, no pinned build, a failed download): it counts as failed."""
+
+
+class Skipped(Exception):
+    """The check does not apply on this machine; the message says why."""
+
+
 def platform_key() -> tuple[str, str]:
     machine = platform.machine().lower()
     arch = {"amd64": "x86_64", "aarch64": "arm64"}.get(machine, machine)
@@ -125,37 +138,72 @@ def platform_key() -> tuple[str, str]:
 
 
 def tool(name: str) -> Path:
-    """Returns the pinned executable (or jar) for `name`, downloading and verifying it on first use."""
+    """Returns the pinned executable (or jar) for `name`, downloading and verifying it on first use.
+
+    The download is verified and unpacked in a temporary directory next to the cache, which is renamed into place only
+    when complete: an interrupted download or extraction is never mistaken for an installed tool.
+    """
     version, assets = TOOLS[name]
     key = ("any", "any") if ("any", "any") in assets else platform_key()
     if key not in assets:
-        raise SystemExit(f"{name} {version}: no pinned build for {key[0]}/{key[1]}; add one to TOOLS in ci/check.py")
+        raise CheckError(f"{name} {version}: no pinned build for {key[0]}/{key[1]}; add one to TOOLS in ci/check.py")
     url, sha256, kind, inner = assets[key]
     home = CACHE / f"{name}-{version}"
     exe = home / inner
     if exe.exists():
         return exe
-    home.mkdir(parents=True, exist_ok=True)
-    download = home / ("download." + kind)
-    print(f"Downloading {name} {version}: {url}", flush=True)
-    with urllib.request.urlopen(url, timeout=120) as response, open(download, "wb") as out:
-        shutil.copyfileobj(response, out)
-    digest = hashlib.sha256(download.read_bytes()).hexdigest()
-    if digest != sha256:
-        download.unlink()
-        raise SystemExit(f"{name} {version}: SHA-256 mismatch for {url}: got {digest}, pinned {sha256}")
-    if kind == "bin":
-        download.rename(exe)
-    elif kind == "tar.gz":
-        with tarfile.open(download) as archive:
-            archive.extract(archive.getmember(inner), home)
-        download.unlink()
-    else:
-        with zipfile.ZipFile(download) as archive:
-            archive.extract(inner, home)
-        download.unlink()
-    exe.chmod(exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    CACHE.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{name}-{version}-", dir=CACHE))
+    try:
+        download = staging / ("download." + kind)
+        print(f"Downloading {name} {version}: {url}", flush=True)
+        fetch(url, download)
+        digest = hashlib.sha256(download.read_bytes()).hexdigest()
+        if digest != sha256:
+            raise CheckError(f"{name} {version}: SHA-256 mismatch for {url}: got {digest}, pinned {sha256}")
+        if kind == "bin":
+            download.rename(staging / inner)
+        elif kind == "tar.gz":
+            with tarfile.open(download) as archive:
+                archive.extract(archive.getmember(inner), staging)
+            download.unlink()
+        else:
+            with zipfile.ZipFile(download) as archive:
+                archive.extract(inner, staging)
+            download.unlink()
+        unpacked = staging / inner
+        unpacked.chmod(unpacked.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        if home.exists():  # an incomplete install left by an older check.py
+            shutil.rmtree(home)
+        try:
+            staging.rename(home)
+        except OSError:
+            if not exe.exists():  # else another check.py run installed it at the same time
+                raise
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
     return exe
+
+
+def fetch(url: str, dest: Path, attempts: int = 4) -> None:
+    """Downloads url to dest, retrying network errors, timeouts and 5xx/429 answers (2, 4, 8 s apart)."""
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response, open(dest, "wb") as out:
+                shutil.copyfileobj(response, out)
+            return
+        except urllib.error.HTTPError as e:
+            e.close()
+            if e.code < 500 and e.code != 429:
+                raise CheckError(f"download failed: {url}: HTTP {e.code}") from e
+            error: OSError = e
+        except OSError as e:  # URLError, connection resets, timeouts (socket.timeout is an OSError on 3.9)
+            error = e
+        if attempt == attempts:
+            raise CheckError(f"download failed after {attempts} attempts: {url}: {error}") from error
+        delay = 2**attempt
+        print(f"Download failed ({error}); retrying in {delay} s", flush=True)
+        time.sleep(delay)
 
 
 def run(args: list[str | Path], cwd: Path = REPO, env: dict[str, str] | None = None) -> int:
@@ -214,14 +262,33 @@ def check_osv() -> int:
         return run([*scan, "."])
 
 
+def java() -> Path:
+    """Java 17+: $JAVA_HOME/bin/java when JAVA_HOME is set (as Gradle does), else java on the PATH."""
+    java_home = os.environ.get("JAVA_HOME")
+    if java_home:
+        exe = Path(java_home) / "bin" / ("java.exe" if os.name == "nt" else "java")
+        if not exe.exists():
+            raise CheckError(f"JAVA_HOME is {java_home}, but it has no bin/java")
+    else:
+        found = shutil.which("java")
+        if found is None:
+            raise CheckError("Java 17+ not found: set JAVA_HOME or put java on the PATH")
+        exe = Path(found)
+    # `java -version` prints e.g. `openjdk version "17.0.12" ...` or, before Java 9, `java version "1.8.0_402"`.
+    banner = subprocess.run([str(exe), "-version"], capture_output=True, text=True, check=False).stderr
+    match = re.search(r'version "(?:1\.)?(\d+)', banner)
+    if match is None:
+        raise CheckError(f"cannot tell the Java version of {exe}: {banner.strip()!r}")
+    if int(match.group(1)) < 17:
+        raise CheckError(f"Java 17+ is needed; {exe} is Java {match.group(1)} (set JAVA_HOME to a JDK 17+)")
+    return exe
+
+
 def check_detekt() -> int:
-    java = shutil.which("java")
-    if java is None:
-        raise SystemExit("detekt needs Java 17+ on the PATH")
     sources = ",".join(["android/app/src", "shared/src", "tools/src"])
     return run(
         [
-            java,
+            java(),
             "-jar",
             tool("detekt"),
             "--input",
@@ -239,7 +306,7 @@ def go_toolchain() -> str:
     """The exact Go release backend/go.mod pins (its toolchain line), e.g. go1.26.11."""
     match = re.search(r"^toolchain (go\S+)", (REPO / "backend" / "go.mod").read_text(), re.MULTILINE)
     if match is None:
-        raise SystemExit("backend/go.mod has no toolchain line: check.py go runs on exactly that Go release")
+        raise CheckError("backend/go.mod has no toolchain line: check.py go runs on exactly that Go release")
     return match.group(1)
 
 
@@ -270,8 +337,7 @@ def check_swiftlint() -> int:
 def check_swift_format() -> int:
     """swift-format from the selected Xcode (6.4.4 in Xcode 27.2); no baseline, the code is clean."""
     if sys.platform != "darwin":
-        print("swift-format: skipped, it runs with Xcode's toolchain on macOS (see ci/README.md)")
-        return 0
+        raise Skipped("swift-format runs with Xcode's toolchain, on macOS only (see ci/README.md)")
     files = sorted(p.name for p in (REPO / "ios" / "Brew").glob("*.swift") if not p.name.endswith(".generated.swift"))
     return run(["xcrun", "swift-format", "lint", "--strict", *[f"Brew/{f}" for f in files]], cwd=REPO / "ios")
 
@@ -292,15 +358,29 @@ def main(argv: list[str]) -> int:
     if not names or unknown:
         print(f"usage: python3 ci/check.py <{'|'.join(CHECKS)}|all> ...", file=sys.stderr)
         return 2
+    results: dict[str, str] = {}
     failed = []
     for name in names:
         print(f"\n=== {name}", flush=True)
-        code = CHECKS[name]()
-        print(f"=== {name}: {'ok' if code == 0 else f'FAILED (exit {code})'}", flush=True)
+        try:
+            code = CHECKS[name]()
+            result = "ok" if code == 0 else f"FAILED (exit {code})"
+        except Skipped as e:
+            code, result = 0, f"SKIPPED: {e}"
+        except CheckError as e:
+            code, result = 1, f"FAILED: {e}"
+        except Exception as e:  # a bug here, or an OSError from a missing program: this check fails, the rest run
+            traceback.print_exc()
+            code, result = 1, f"FAILED: {type(e).__name__}: {e}"
+        print(f"=== {name}: {result}", flush=True)
+        results[name] = result
         if code != 0:
             failed.append(name)
+    print("\nSummary:")
+    for name, result in results.items():
+        print(f"  {name}: {result}")
     if failed:
-        print(f"\nFailed: {', '.join(failed)}")
+        print(f"Failed: {', '.join(failed)}")
     return len(failed)
 
 
