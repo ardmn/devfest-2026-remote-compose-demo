@@ -119,7 +119,7 @@ GOVULNCHECK = "golang.org/x/vuln/cmd/govulncheck@v1.9.0"
 def platform_key() -> tuple[str, str]:
     machine = platform.machine().lower()
     arch = {"amd64": "x86_64", "aarch64": "arm64"}.get(machine, machine)
-    return sys.platform if sys.platform != "darwin" else "darwin", arch
+    return sys.platform, arch  # "darwin" or "linux"
 
 
 def tool(name: str) -> Path:
