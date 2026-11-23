@@ -28,6 +28,7 @@ import traceback
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+IOS_PACKAGE_RESOLVED = REPO / "ios/Brew.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 # The Gradle builds whose directories --write-locks may leave lockfiles in (shared is included by android).
 GRADLE_BUILDS = ("android", "tools", "shared")
 
@@ -108,21 +109,27 @@ def check_osv() -> int:
             lockfiles = sorted(Path(locks).glob("**/gradle.lockfile"))
             if not lockfiles:
                 raise Failed(f"Gradle wrote no lockfiles into {locks}")
-            scan: list[str | Path] = [exe, "scan", "source", "--recursive", "--config", REPO / "osv-scanner.toml"]
-            for lockfile in lockfiles:
+            # Only what ships: the Gradle runtime locks and the iOS app's Package.resolved. Not backend/go.mod: it
+            # also lists Go tools (govulncheck's dependencies) that never link into the server; govulncheck covers
+            # the Go code with reachability.
+            scan: list[str | Path] = [exe, "scan", "source", "--config", REPO / "osv-scanner.toml"]
+            for lockfile in [*lockfiles, IOS_PACKAGE_RESOLVED]:
                 scan += ["--lockfile", lockfile]
-            return run([*scan, "."])
+            return run(scan)
     finally:
         remove_stray_lockfiles()
 
 
 def remove_stray_lockfiles() -> None:
-    """Deletes the lockfiles --write-locks leaves in the Gradle builds' directories (the repo keeps none)."""
+    """Deletes the untracked lockfiles --write-locks leaves in the Gradle builds' directories. A lockfile git tracks is
+    never touched, so turning dependency locking on later cannot make this delete committed files."""
+    tracked = set(subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True, text=True).stdout.split())
     for build in GRADLE_BUILDS:
         for directory in ("", "*/"):
             for name in ("gradle.lockfile", "settings-gradle.lockfile"):
                 for stray in (REPO / build).glob(directory + name):
-                    stray.unlink(missing_ok=True)
+                    if stray.relative_to(REPO).as_posix() not in tracked:
+                        stray.unlink(missing_ok=True)
 
 
 def check_detekt() -> int:
