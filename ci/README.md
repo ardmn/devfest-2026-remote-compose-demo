@@ -1,22 +1,36 @@
 # ci — static analysis
 
-`.github/workflows/ci.yml` runs the build, the tests and the analysers below on every push to `main` and every pull
-request. Each step is judged by its exit code. The same checks run locally:
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request, on Linux. Each step is judged by its
+exit code. Exactly these:
+
+| Job | Runs |
+|---|---|
+| go | `cd tools && ./gradlew installDist` (the rc tool, for the backend's end-to-end test), then `python3 ci/check.py go`: `go run ./cmd/demo lint -check` (golangci-lint fmt --diff + run, go vet, `go test -race`) and govulncheck, on the Go release `backend/go.mod` pins |
+| kotlin | `cd tools && ./gradlew test ktfmtCheck`; `cd android && ./gradlew :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug`; `python3 ci/check.py detekt`; `python3 ci/check.py osv` |
+| security | `python3 ci/check.py gitleaks` |
+| swift | `python3 ci/check.py swiftlint` |
+
+Not in CI: the iOS app is not compiled and swift-format does not run (both need macOS and Xcode; see below), and no
+Android APK is assembled. Build them locally (the README's "Check everything").
+
+The `check.py` checks run the same way locally; it prints a summary and exits with the number of failed checks. A
+check that cannot run (a missing program, a failed download) fails with the reason, and the others still run:
 
 ```bash
 python3 ci/check.py all          # or some of: gitleaks osv detekt go swiftlint swift-format
 ```
 
-`check.py` needs Python 3.9+ (standard library only), Java 17+ (detekt; Gradle for `osv`) and Go (`go`). It downloads
-each tool once into `.cache/ci-tools/` (git-ignored) and checks its SHA-256. Versions are pinned in `check.py`
-(`TOOLS`); to update one, change the URL and the SHA-256 together.
+`check.py` needs Python 3.9+ (standard library only), Java 17+ (`JAVA_HOME`, else `java` on the PATH; detekt, and
+Gradle for `osv`) and Go 1.21+ (`go`; it switches to the release `go.mod` pins). It downloads each tool once into
+`.cache/ci-tools/` (git-ignored), checks its SHA-256 and only then moves it into place. Versions are pinned in
+`check.py` (`TOOLS`); to update one, change the URL and the SHA-256 together.
 
 | Stack | Tool | Version | Config | Existing findings |
 |---|---|---|---|---|
 | Kotlin (android, shared, tools) | ktfmt (Gradle plugin, already used) | 0.27.0 plugin | `build.gradle.kts` | 0 |
 | Kotlin | detekt CLI | 1.23.8 | `config/detekt.yml` | 90, in `config/detekt-baseline.xml` |
-| Android (app, shared) | Android Lint (AGP) | 9.5.1 | `build.gradle.kts`, `android/app/lint-baseline.xml` | 2 in the baseline (app) |
-| Go (backend) | golangci-lint fmt + run (already used), go vet | 2.15.0 | `backend/.golangci.yml` | 0 |
+| Android (app, shared) | Android Lint (AGP) | 9.5.1 | `build.gradle.kts`, `config/lint-volatile-checks.txt`, `android/app/lint-baseline.xml` | 2 in the baseline (app); shared has no baseline |
+| Go (backend), Go 1.26.11 | golangci-lint fmt + run (already used), go vet, via `go run ./cmd/demo lint -check` | 2.15.0 | `backend/.golangci.yml` | 0 |
 | Go | govulncheck | 1.9.0 | — | 0 |
 | Swift (ios) | SwiftLint | 0.65.1 | `ios/.swiftlint.yml` | 22, in `ios/swiftlint-baseline.json` |
 | Swift | swift-format (Xcode 27.2's, 6.4.4) | Xcode | `ios/.swift-format` | 0 |
@@ -26,11 +40,20 @@ each tool once into `.cache/ci-tools/` (git-ignored) and checks its SHA-256. Ver
 **Baselines.** Findings that existed when an analyser was added are recorded; only new ones fail. Fix rather than
 re-baseline; regenerate a baseline only on purpose and review its diff:
 
-- detekt: `java -jar .cache/ci-tools/detekt-1.23.8/detekt-cli-1.23.8-all.jar --input android/app/src,shared/src,tools/src --config config/detekt.yml --build-upon-default-config --baseline config/detekt-baseline.xml --create-baseline`
-- SwiftLint: `cd ios && ../.cache/ci-tools/swiftlint-0.65.1/swiftlint lint --strict --write-baseline swiftlint-baseline.json`
-- Android Lint: delete `android/app/lint-baseline.xml`, run `./gradlew :app:lintDebug` once (it writes the file).
-  Warnings are errors (`warningsAsErrors`); lint's "a newer version is available" checks are off, they change with
-  the date, not the code.
+- detekt, from the repository root, on macOS or Linux (the jar is there after `python3 ci/check.py detekt` has run
+  once): `java -jar .cache/ci-tools/detekt-1.23.8/detekt-cli-1.23.8-all.jar --input android/app/src,shared/src,tools/src --config config/detekt.yml --build-upon-default-config --baseline config/detekt-baseline.xml --create-baseline`
+- SwiftLint, from `ios/`, after `python3 ci/check.py swiftlint` has downloaded it. On macOS (preferred: all rules
+  run): `../.cache/ci-tools/swiftlint-0.65.1/swiftlint lint --strict --write-baseline swiftlint-baseline.json`. On
+  Linux the binary is `../.cache/ci-tools/swiftlint-0.65.1/swiftlint-static` (same arguments); it skips the rules
+  that need SourceKit, so their findings would be missing from the baseline. The command exits non-zero, because it
+  reports the violations it records; the file is written anyway.
+- Android Lint, from `android/`: `./gradlew :app:updateLintBaseline` rewrites `app/lint-baseline.xml`. (Deleting the
+  file and running `:app:lintDebug` also writes it, but that run fails on purpose: "Created baseline file … re-run
+  the build".) `:shared` has no baseline; fix its warnings.
+
+Android Lint warnings are errors (`warningsAsErrors`). Checks that can fail with no code change — they depend on the
+date, on Google's Play SDK Index (network) or on the installed SDK — are off in both modules; the one list, with the
+reasons, is `config/lint-volatile-checks.txt`.
 
 **OSV and Gradle.** The Gradle builds keep no lockfiles. For the scan, `check.py osv` has Gradle write them with
 `ci/dependency-locks.init.gradle.kts` for the configurations that ship, and only those: the Android app's debug and

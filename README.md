@@ -99,15 +99,23 @@ config/    detekt's config and baseline
 
 ## Check everything
 
+What CI runs (Linux; [ci/README.md](ci/README.md) has the details):
+
 ```bash
-cd backend && go run ./cmd/demo lint                         # Go: format, golangci-lint, vet, tests (-race)
-cd tools && ./gradlew test                                   # rendering, the committed documents are current, JSON → .rc
-cd android && ./gradlew :app:ktfmtCheck :app:lintDebug :shared:lintDebug   # style, lint (RestrictedApi is an error)
+python3 ci/check.py all        # Go: demo lint -check (fmt, golangci-lint, vet, tests -race) + govulncheck;
+                               # detekt, SwiftLint, swift-format (macOS only), gitleaks, OSV-Scanner
+cd tools && ./gradlew test ktfmtCheck      # rendering, the committed documents are current, JSON → .rc; style
+cd android && ./gradlew :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug   # style, lint (RestrictedApi is an error)
+```
+
+CI builds the rc tool first (`cd tools && ./gradlew installDist`), so the backend's end-to-end test runs there. CI does
+not compile the iOS app or run swift-format (they need macOS and Xcode). Before pushing Swift changes, also run:
+
+```bash
 cd ios && xcodebuild -scheme Brew -destination 'generic/platform=iOS Simulator' build   # strict concurrency, warnings are errors
 ```
 
-Static analysis (detekt, SwiftLint, swift-format, govulncheck, gitleaks, OSV-Scanner) — pinned tools, baselines, the same
-checks as CI: `python3 ci/check.py all`. See [ci/README.md](ci/README.md).
+Day to day, `cd backend && go run ./cmd/demo lint` formats the Go code in place and runs the same Go checks.
 
 ## License
 

@@ -1,5 +1,7 @@
-# Build, tests and static analysis. Every step is judged by its exit code; the analysers fail only on findings that
-# are not in their baselines (see ci/README.md). Tool versions are pinned in ci/check.py, actions by commit SHA.
+# Tests and static analysis on Linux: the Go backend, the Kotlin tools/shared/android code, secrets, Swift lint. The
+# iOS app is not compiled here (no macOS runner), and no Android APK is assembled; ci/README.md lists exactly what
+# runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
+# Tool versions are pinned in ci/check.py and backend/go.mod, actions by commit SHA.
 name: CI
 
 on:
