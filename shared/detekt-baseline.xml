@@ -1,0 +1,72 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:DocumentValidator.kt:DocumentValidator$fun validate: CoreDocument</ID>
+    <ID>LongMethod:DetailsSection.kt:@RemoteComposable @Composable internal fun DetailsSection</ID>
+    <ID>LongMethod:OptionGroup.kt:@RemoteComposable @Composable internal fun OptionGroup</ID>
+    <ID>MagicNumber:BrewCatalog.kt:BrewCatalog$100</ID>
+    <ID>MagicNumber:BrewCatalog.kt:BrewCatalog$100f</ID>
+    <ID>MagicNumber:DocumentValidator.kt:DocumentValidator$0xFF</ID>
+    <ID>MagicNumber:DocumentValidator.kt:DocumentValidator$12</ID>
+    <ID>MagicNumber:LabShaders.kt:LabShaders$4000</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.008f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.015f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.02f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.03f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.105f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.16f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.17f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.19f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.20f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.24f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.25f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.44f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.50f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.60f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.62f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.63f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.64f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.80f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.81f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.83f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.84f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0.86f</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0x66000000</ID>
+    <ID>MagicNumber:LenticularArt.kt:LenticularArt$0x88000000</ID>
+    <ID>ReturnCount:BrewCatalog.kt:BrewCatalog$fun unitCents: Int?</ID>
+    <ID>SwallowedException:DocumentValidator.kt:DocumentValidator$t: Throwable</ID>
+    <ID>ThrowsCount:DocumentValidator.kt:DocumentValidator$fun validate: CoreDocument</ID>
+    <ID>TooGenericExceptionCaught:DocumentValidator.kt:DocumentValidator$t: Throwable</ID>
+    <ID>WildcardImport:CategoriesSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:DetailsSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:DetailsSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:DetailsSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:DetailsSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:DetailsSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:ForYouSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:ForYouSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:ForYouSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:ForYouSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:ForYouSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:HeroSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:HeroSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:HeroSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:HeroSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:HeroSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:RowSection.kt:import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:RowSection.kt:import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:RowSection.kt:import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:RowSection.kt:import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:RowSection.kt:import androidx.compose.remote.creation.compose.state.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

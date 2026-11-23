@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ktfmt)
+    alias(libs.plugins.detekt)
 }
 
 // Brew for Android: a regular Compose app (tabs, cart, pull to refresh, snackbar) whose content sections are Remote
@@ -30,7 +31,7 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
     lint {
         // Every lint warning fails the build, except the ones recorded in lint-baseline.xml when this was turned on
-        // (regenerate on purpose only: delete the file and run :app:lintDebug once).
+        // (regenerate on purpose only: ./gradlew :app:updateLintBaseline, then review the diff).
         warningsAsErrors = true
         baseline = file("lint-baseline.xml")
         // Off: checks that can fail with no code change (the date, the network, the installed SDK). One list for app and
@@ -61,4 +62,14 @@ dependencies {
 ktfmt {
     kotlinLangStyle()
     maxWidth.set(140)
+}
+
+// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
+// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew :app:detekt checks,
+// :app:detektBaseline rewrites the baseline (on purpose only; review its diff).
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("../config/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    source.setFrom("src")
 }

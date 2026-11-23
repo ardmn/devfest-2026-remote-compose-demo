@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ktfmt)
+    alias(libs.plugins.detekt)
 }
 
 // The Remote Compose UI of the Brew demo, shared by the backend (which captures it into documents)
@@ -54,4 +55,14 @@ dependencies {
 ktfmt {
     kotlinLangStyle()
     maxWidth.set(140)
+}
+
+// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
+// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew :shared:detekt checks,
+// :shared:detektBaseline rewrites the baseline (on purpose only; review its diff).
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("../config/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    source.setFrom("src")
 }
