@@ -1,0 +1,18 @@
+# detekt 1.23.8 (pinned in ci/check.py), on top of detekt's default config. Run: python3 ci/check.py detekt
+# ktfmt owns formatting; these settings only line detekt up with it and with Compose conventions.
+# Findings that existed when this was added are in detekt-baseline.xml: only new ones fail.
+style:
+  MaxLineLength:
+    # ktfmt's maxWidth (build.gradle.kts of android/app, shared, tools).
+    maxLineLength: 140
+  MagicNumber:
+    # Sizes, colours and offsets inside composables are the UI itself, not hidden constants.
+    ignoreAnnotated: ['Composable']
+naming:
+  FunctionNaming:
+    # Composables are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+complexity:
+  LongParameterList:
+    # Composables take their styling as parameters by convention.
+    ignoreAnnotated: ['Composable']

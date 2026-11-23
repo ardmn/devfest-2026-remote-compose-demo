@@ -21,3 +21,8 @@ backend/brew-backend
 backend/backend
 *.test
 coverage.out
+
+# Static analysis (ci/check.py): downloaded tools; Gradle locks written only for the OSV scan
+.cache/
+gradle.lockfile
+settings-gradle.lockfile

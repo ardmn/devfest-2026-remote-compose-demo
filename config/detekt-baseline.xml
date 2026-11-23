@@ -1,0 +1,96 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:DocumentValidator.kt$DocumentValidator$fun validate(bytes: ByteArray, sha256: String? = null, etag: String? = null): CoreDocument</ID>
+    <ID>CyclomaticComplexMethod:ShowcaseApp.kt$@Composable fun ShowcaseApp(source: SectionSource)</ID>
+    <ID>ForEachOnRange:LabTab.kt$0 until p.childCount</ID>
+    <ID>ForEachOnRange:Sections.kt$0 until p.childCount</ID>
+    <ID>LongMethod:DetailsSection.kt$@RemoteComposable @Composable internal fun DetailsSection(id: String)</ID>
+    <ID>LongMethod:LabTab.kt$@Composable fun LabTab()</ID>
+    <ID>LongMethod:OptionGroup.kt$@RemoteComposable @Composable internal fun OptionGroup( title: String, options: List&lt;String&gt;, selected: List&lt;MutableRemoteFloat&gt;, extra: (Int) -&gt; List&lt;RemoteAction&gt; = { emptyList() }, )</ID>
+    <ID>LongMethod:Sections.kt$@Composable fun RemoteSection( path: String, source: SectionSource, refreshKey: Int, modifier: Modifier, /** false: always a fresh document (a product page should not remember the last visit's quantity). */ reuse: Boolean = true, onLoaded: (path: String, Section) -&gt; Unit = { _, _ -&gt; }, onNamedValue: (name: String, value: Any?) -&gt; Unit = { _, _ -&gt; }, /** Host-owned values pushed into the document (favorites). Compose state read here re-runs it on change. */ push: (StateUpdater) -&gt; Unit = {}, onAction: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:ShowcaseApp.kt$@Composable fun ShowcaseApp(source: SectionSource)</ID>
+    <ID>LongMethod:SwiftCatalog.kt$SwiftCatalog$fun render(): String</ID>
+    <ID>LongParameterList:BrewCatalog.kt$BrewCatalog.Drink$( val id: String, val name: String, val desc: String, val price: Float, val emoji: String, val tile: Int, val category: String = "coffee", )</ID>
+    <ID>MagicNumber:BrewCatalog.kt$BrewCatalog$100</ID>
+    <ID>MagicNumber:BrewCatalog.kt$BrewCatalog$100f</ID>
+    <ID>MagicNumber:DocumentValidator.kt$DocumentValidator$0xFF</ID>
+    <ID>MagicNumber:DocumentValidator.kt$DocumentValidator$12</ID>
+    <ID>MagicNumber:DocumentValidator.kt$DocumentValidator$16</ID>
+    <ID>MagicNumber:LabShaders.kt$LabShaders$4000</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.008f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.015f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.02f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.03f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.105f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.14f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.16f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.17f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.19f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.20f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.24f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.25f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.44f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.50f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.60f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.62f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.63f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.64f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.80f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.81f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.83f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.84f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0.86f</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0x66000000</ID>
+    <ID>MagicNumber:LenticularArt.kt$LenticularArt$0x88000000</ID>
+    <ID>MagicNumber:Sections.kt$SectionSource$6</ID>
+    <ID>MagicNumber:ServerFiles.kt$ServerFiles$100f</ID>
+    <ID>MagicNumber:StageFile.kt$StageFile$0xFF000000</ID>
+    <ID>MagicNumber:StageFile.kt$StageFile$16</ID>
+    <ID>MagicNumber:StageFile.kt$StageFile$6</ID>
+    <ID>MagicNumber:StageFile.kt$StageFile$8</ID>
+    <ID>MagicNumber:SwiftCatalog.kt$SwiftCatalog$100f</ID>
+    <ID>MaxLineLength:Main.kt$"rc: the JVM's default charset is ${Charset.defaultCharset()}, not UTF-8 — run it with -Dfile.encoding=UTF-8 (build/install/rc/bin/rc does)"</ID>
+    <ID>ReturnCount:BrewCatalog.kt$BrewCatalog$fun unitCents(id: String, large: Boolean, toppings: Int): Int?</ID>
+    <ID>SpreadOperator:DetailsSection.kt$(*a, *report.toTypedArray())</ID>
+    <ID>SpreadOperator:OptionGroup.kt$(*select.toTypedArray())</ID>
+    <ID>SpreadOperator:ToppingChip.kt$(*toggle.toTypedArray())</ID>
+    <ID>SwallowedException:DocumentValidator.kt$DocumentValidator$t: Throwable</ID>
+    <ID>ThrowsCount:DocumentValidator.kt$DocumentValidator$fun validate(bytes: ByteArray, sha256: String? = null, etag: String? = null): CoreDocument</ID>
+    <ID>TooGenericExceptionCaught:DocumentValidator.kt$DocumentValidator$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:JsonDocument.kt$JsonDocument$e: Exception</ID>
+    <ID>TooManyFunctions:LabDocuments.kt$LabDocuments</ID>
+    <ID>TooManyFunctions:ShowcaseApp.kt$brew.app.ShowcaseApp.kt</ID>
+    <ID>WildcardImport:CategoriesSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:CategoriesSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:DetailsSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:DetailsSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:DetailsSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:DetailsSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:DetailsSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:FavoritesSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:ForYouSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:ForYouSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:ForYouSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:ForYouSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:ForYouSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:HeroSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:HeroSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:HeroSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:HeroSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:HeroSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+    <ID>WildcardImport:RowSection.kt$import androidx.compose.remote.creation.compose.action.*</ID>
+    <ID>WildcardImport:RowSection.kt$import androidx.compose.remote.creation.compose.layout.*</ID>
+    <ID>WildcardImport:RowSection.kt$import androidx.compose.remote.creation.compose.modifier.*</ID>
+    <ID>WildcardImport:RowSection.kt$import androidx.compose.remote.creation.compose.shapes.*</ID>
+    <ID>WildcardImport:RowSection.kt$import androidx.compose.remote.creation.compose.state.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -53,6 +53,8 @@ backend/   the server (Go): serves the rendered documents, picks the banners, bu
 android/   Brew for Android (Jetpack Compose + the androidx Remote Compose player)
 ios/       Brew for iOS (SwiftUI + rc-players)
 gradle/    one version catalog for the Gradle builds (shared, tools, android)
+ci/        static analysis: ci/check.py (pinned tools, baselines), run by .github/workflows/ci.yml
+config/    detekt's config and baseline
 ```
 
 ## How it works
@@ -103,6 +105,9 @@ cd tools && ./gradlew test                                   # rendering, the co
 cd android && ./gradlew :app:ktfmtCheck :app:lintDebug :shared:lintDebug   # style, lint (RestrictedApi is an error)
 cd ios && xcodebuild -scheme Brew -destination 'generic/platform=iOS Simulator' build   # strict concurrency, warnings are errors
 ```
+
+Static analysis (detekt, SwiftLint, swift-format, govulncheck, gitleaks, OSV-Scanner) — pinned tools, baselines, the same
+checks as CI: `python3 ci/check.py all`. See [ci/README.md](ci/README.md).
 
 ## License
 
