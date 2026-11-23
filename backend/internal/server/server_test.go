@@ -506,8 +506,9 @@ func TestTheRealBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, statErr := os.Stat(tool); statErr != nil {
-		if os.Getenv("CI") != "" { // set by GitHub Actions: CI builds the tool first, a skip there would hide a failure
-			t.Fatalf("CI is set but the rc tool is not built (%v): build it first (cd tools && ./gradlew installDist)", statErr)
+		// CI builds the tool first and sets BREW_REQUIRE_RC_TOOL=1: a skip there would hide a broken end-to-end path.
+		if os.Getenv("BREW_REQUIRE_RC_TOOL") == "1" {
+			t.Fatalf("BREW_REQUIRE_RC_TOOL=1 but the rc tool is not built (%v): build it first (cd tools && ./gradlew installDist)", statErr)
 		}
 		t.Skip("the rc tool is not built (cd tools && ./gradlew installDist): skipping the end-to-end test")
 	}

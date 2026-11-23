@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
@@ -127,7 +129,8 @@ func TestIsV2(t *testing.T) {
 
 func TestUsage(t *testing.T) {
 	t.Parallel()
-	for _, args := range [][]string{nil, {"deploy"}, {""}} {
+	// `lint check` (no dash) must not be taken for `lint` and format the code in place.
+	for _, args := range [][]string{nil, {"deploy"}, {""}, {"lint", "check"}, {"lint", "-check", "extra"}} {
 		if err := run(t.Context(), args, io.Discard); !errors.Is(err, errUsage) {
 			t.Errorf("run(%q) = %v, want the usage", args, err)
 		}
@@ -160,6 +163,98 @@ func TestLintSteps(t *testing.T) {
 			t.Errorf("%s runs %q after formatting, want %q", name, rest, want)
 		}
 	}
+}
+
+// recorder is an env.run that records the commands instead of running them. golangci-lint answers `version` with
+// version; a command whose joined line is in fail fails.
+type recorder struct {
+	version string
+	fail    map[string]bool
+	ran     []string
+}
+
+func (r *recorder) run(_ context.Context, out io.Writer, _, _, name string, args ...string) error {
+	line := strings.Join(append([]string{name}, args...), " ")
+	r.ran = append(r.ran, line)
+	if len(args) == 1 && args[0] == "version" {
+		_, _ = io.WriteString(out, r.version)
+	}
+	if r.fail[line] {
+		return errors.New(line + ": exit status 1")
+	}
+	return nil
+}
+
+// lint itself: which flags and arguments lead to which commands, a missing or old golangci-lint, and that a failing
+// step does not stop the ones after it.
+func TestLint(t *testing.T) {
+	t.Parallel()
+	const v2 = "golangci-lint has version 2.15.0 built with go1.26.11"
+	gl := "/usr/bin/golangci-lint"
+	all := func(format string) []string {
+		return []string{gl + " version", format, gl + " run", "go vet ./...", "go test -race -count=1 ./..."}
+	}
+	tests := []struct {
+		name    string
+		args    []string
+		onPath  []string
+		version string
+		fail    []string
+		ran     []string
+		wantErr string // "" = no error
+	}{
+		{"formats in place", nil, []string{"golangci-lint"}, v2, nil, all(gl + " fmt"), ""},
+		{"-check reports a diff", []string{"-check"}, []string{"golangci-lint"}, v2, nil, all(gl + " fmt --diff"), ""},
+		{"--check too", []string{"--check"}, []string{"golangci-lint"}, v2, nil, all(gl + " fmt --diff"), ""},
+		{"a positional check is refused", []string{"check"}, []string{"golangci-lint"}, v2, nil, nil, "usage"},
+		{"an extra argument is refused", []string{"-check", "x"}, []string{"golangci-lint"}, v2, nil, nil, "usage"},
+		{"no golangci-lint", []string{"-check"}, nil, v2, nil, nil, "not found on the PATH"},
+		{"golangci-lint v1", []string{"-check"}, []string{"golangci-lint"}, "golangci-lint has version 1.64.8", nil, []string{gl + " version"}, "v2 is needed"},
+		{
+			"every step runs after a failure",
+			[]string{"-check"},
+			[]string{"golangci-lint"},
+			v2,
+			[]string{gl + " fmt --diff", "go vet ./..."},
+			all(gl + " fmt --diff"),
+			"go vet ./...",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			r := &recorder{version: tt.version, fail: map[string]bool{}}
+			for _, f := range tt.fail {
+				r.fail[f] = true
+			}
+			err := lint(t.Context(), fakeEnv("linux", nil, tt.onPath), r.run, tt.args, io.Discard)
+			if msg := lintErrorMismatch(err, tt.wantErr, tt.fail); msg != "" {
+				t.Errorf("lint(%q) = %v, want %s", tt.args, err, msg)
+			}
+			if !slices.Equal(r.ran, tt.ran) {
+				t.Errorf("lint(%q) ran %q, want %q", tt.args, r.ran, tt.ran)
+			}
+		})
+	}
+}
+
+// lintErrorMismatch says what is wrong with lint's error: want is "" (none), "usage" or a substring; every failed
+// command must be named in it. "" means it matches.
+func lintErrorMismatch(err error, want string, failed []string) string {
+	switch {
+	case want == "" && err != nil:
+		return "no error"
+	case want == "usage" && !errors.Is(err, errUsage):
+		return "the usage"
+	case want != "" && want != "usage" && (err == nil || !strings.Contains(err.Error(), want)):
+		return fmt.Sprintf("an error mentioning %q", want)
+	}
+	for _, f := range failed {
+		if err == nil || !strings.Contains(err.Error(), f) {
+			return fmt.Sprintf("an error reporting %q", f)
+		}
+	}
+	return ""
 }
 
 func TestRunToolReportsTheCommand(t *testing.T) {
