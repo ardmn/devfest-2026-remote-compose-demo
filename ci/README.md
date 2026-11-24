@@ -15,8 +15,8 @@ gitleaks, OSV-Scanner and SwiftLint are plain workflow steps: `curl --retry 3 --
 against the SHA-256 written next to the version, unpack, run. Caches: Go's module and build cache (setup-go, keyed by
 `backend/go.mod` + `backend/go.sum`), golangci-lint-action's analysis cache, and Gradle's (setup-gradle).
 
-Not in CI: the iOS app is not compiled and swift-format does not run (both need macOS and Xcode; see below), and no
-Android APK is assembled. Build them locally (the README's "Check everything").
+The `ios` job (macOS runner, the newest Xcode 26 on the image) builds the iOS app for the simulator and runs
+swift-format. Not in CI: no Android APK is assembled; build it locally (the README's "Check everything").
 
 ## Versions
 
@@ -31,7 +31,7 @@ One place per version:
 | Go | golangci-lint (fmt + run) | 2.15.0 | `.github/workflows/ci.yml` | `backend/.golangci.yml` | 0 |
 | Go | govulncheck | 1.9.0 | `backend/go.mod` (`tool`), bytes in `go.sum` | — | 0 |
 | Swift (ios) | SwiftLint | 0.65.1 | `.github/workflows/ci.yml` | `ios/.swiftlint.yml` | 22, in `ios/swiftlint-baseline.json` |
-| Swift | swift-format (Xcode 27.2's, 6.4.4) | Xcode | — | `ios/.swift-format` | 0 |
+| Swift | swift-format (CI: the newest Xcode 26 on macos-26; locally your Xcode's) | Xcode | `.github/workflows/ci.yml` (`ios` job) | `ios/.swift-format` | 0 |
 | Whole repo, every commit | gitleaks | 8.30.1 | `.github/workflows/ci.yml` | defaults | 0 |
 | go.mod/go.sum, Package.resolved, shipped Gradle classpaths | OSV-Scanner | 2.7.1 | `.github/workflows/ci.yml` | `osv-scanner.toml` | 0, none accepted |
 
@@ -89,7 +89,8 @@ reason (the template is in `osv-scanner.toml`); not `[[IgnoredVulns]]`, which ig
 
 ## swift-format
 
-swift-format comes with Xcode, so it runs on macOS only and is not in CI (a macOS runner for one formatter check is
-not worth it; SwiftLint runs on Linux). Run it before pushing Swift changes: `python3 ci/check.py swift-format`;
+swift-format comes with Xcode, so it runs on macOS only: in CI in the `ios` job with the newest Xcode 26 on the runner
+image, and locally with your Xcode. The two versions can disagree on formatting; CI's is the reference. Run it before
+pushing Swift changes: `python3 ci/check.py swift-format`;
 format with `cd ios && xcrun swift-format format -i Brew/<file>.swift` (not `Catalog.generated.swift`, which `tools/`
 writes).

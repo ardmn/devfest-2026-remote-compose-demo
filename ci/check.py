@@ -12,8 +12,8 @@ apply on this OS, is SKIPPED with the reason (with --require-tools a missing pro
 check that finds something, or cannot run, FAILS. Every requested check runs; the script prints a summary and exits
 with the number of failed checks. Standard library only, Python 3.9+.
 
-CI (.github/workflows/ci.yml) runs most of these as its own steps and uses this script only for `osv`, which first has
-Gradle write lockfiles for the shipped dependencies.
+CI (.github/workflows/ci.yml) runs most of these as its own steps and uses this script for `osv`, which first has
+Gradle write lockfiles for the shipped dependencies, and for `swift-format` (the `ios` job, on macOS).
 """
 
 from __future__ import annotations

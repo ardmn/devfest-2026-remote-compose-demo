@@ -100,17 +100,19 @@ config/    detekt's config (detekt.yml); the Android Lint checks off in app and 
 
 ## Check everything
 
-What CI runs (Linux; [ci/README.md](ci/README.md) has the details and the tool versions):
+What CI runs (Linux, plus the iOS build and swift-format on macOS; [ci/README.md](ci/README.md) has the details and the
+tool versions):
 
 ```bash
 cd backend && go run ./cmd/demo lint -check && go tool govulncheck ./...   # fmt --diff, golangci-lint, vet, tests -race; vulnerabilities
 cd tools && ./gradlew --continue test ktfmtCheck detekt   # rendering, the committed documents are current, JSON → .rc; style; detekt
 cd android && ./gradlew --continue :app:ktfmtCheck :shared:ktfmtCheck :app:lintDebug :shared:lintDebug :app:detekt :shared:detekt
-python3 ci/check.py gitleaks osv swiftlint swift-format   # with the tools on the PATH; swift-format: macOS only, not in CI
+python3 ci/check.py gitleaks osv swiftlint swift-format   # with the tools on the PATH; swift-format: macOS only
 ```
 
-CI builds the rc tool first (`cd tools && ./gradlew installDist`), so the backend's end-to-end test runs there. CI does
-not compile the iOS app or run swift-format (they need macOS and Xcode). Before pushing Swift changes, also run:
+CI builds the rc tool first (`cd tools && ./gradlew installDist`), so the backend's end-to-end test runs there. CI's
+`ios` job compiles the iOS app and runs swift-format with the newest Xcode 26 on its macOS runner; a newer local Xcode
+can disagree. Before pushing Swift changes, also run:
 
 ```bash
 cd ios && xcodebuild -scheme Brew -destination 'generic/platform=iOS Simulator' build   # strict concurrency, warnings are errors

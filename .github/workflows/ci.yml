@@ -1,6 +1,5 @@
-# Tests and static analysis on Linux: the Go backend, the Kotlin tools/shared/android code, secrets, Swift lint. The
-# iOS app is not compiled here (no macOS runner), and no Android APK is assembled; ci/README.md lists exactly what
-# runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
+# Tests and static analysis: on Linux the Go backend, the Kotlin tools/shared/android code, secrets and SwiftLint;
+# on macOS the iOS app build and swift-format. No Android APK is assembled; ci/README.md lists exactly what runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
 # Within a job each check is its own step with `if: ${{ !cancelled() }}`, so one failing check does not hide the others.
 # Versions: actions by commit SHA; gitleaks, OSV-Scanner and SwiftLint here (each once, with the SHA-256 of the
 # download); golangci-lint here by version only (the official action installs it, without a checksum); govulncheck in
@@ -153,3 +152,32 @@ jobs:
           echo "$SHA256  $RUNNER_TEMP/swiftlint.zip" | sha256sum -c -
           unzip -q -o "$RUNNER_TEMP/swiftlint.zip" swiftlint-static -d "$RUNNER_TEMP"
           "$RUNNER_TEMP/swiftlint-static" lint --strict --quiet --baseline swiftlint-baseline.json
+
+  ios:
+    name: iOS — xcodebuild (simulator), swift-format
+    # A Swift compile error would otherwise pass CI: only SwiftLint runs on Linux. macOS runners are free for public
+    # repositories. The newest Xcode 26 on the image is selected (not the image default, which moves with image
+    # refreshes); its compiler and swift-format are CI's reference, which can differ from a newer local Xcode.
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select the newest Xcode 26
+        run: |
+          xcode="$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -n 1)"
+          test -n "$xcode"
+          sudo xcode-select --switch "$xcode/Contents/Developer"
+          xcodebuild -version
+          xcrun swift-format --version
+      - name: Build for the iOS simulator
+        if: ${{ !cancelled() }}
+        working-directory: ios
+        run: >-
+          xcodebuild build -quiet -project Brew.xcodeproj -scheme Brew
+          -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile
+          CODE_SIGNING_ALLOWED=NO
+      - name: swift-format
+        if: ${{ !cancelled() }}
+        run: python3 ci/check.py swift-format
