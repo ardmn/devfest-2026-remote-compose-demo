@@ -5,9 +5,9 @@ import androidx.compose.remote.creation.compose.layout.*
 import androidx.compose.remote.creation.compose.modifier.*
 import androidx.compose.remote.creation.compose.shapes.*
 import androidx.compose.remote.creation.compose.state.*
+import androidx.compose.remote.creation.compose.text.RemoteFontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.text.font.FontWeight
 import brew.remote.BrewCatalog
 import brew.remote.BrewCatalog.TOPPINGS
 import brew.remote.BrewColors
@@ -42,7 +42,7 @@ internal fun DetailsSection(id: String) {
     val maskNow = remember { MutableRemoteFloat(0f) }
     val report =
         listOf(
-            valueChange(remoteState = maskNow, updatedValue = mask),
+            valueChangeAction(remoteState = maskNow, updatedValue = mask),
             hostAction(name = BrewSections.QTY_ACTION.rs, value = qty),
             hostAction(name = BrewSections.LARGE_ACTION.rs, value = large),
             hostAction(name = BrewSections.TOPPINGS_ACTION.rs, value = maskNow),
@@ -62,7 +62,7 @@ internal fun DetailsSection(id: String) {
                     text = d.name.rs,
                     color = BrewColors.Ink.rc,
                     fontSize = 30.rsp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = RemoteFontWeight.Bold,
                 )
                 RemoteText(
                     text = d.desc.rs,
@@ -75,7 +75,7 @@ internal fun DetailsSection(id: String) {
                     modifier = RemoteModifier.padding(top = 14.rdp),
                     color = BrewColors.Ink.rc,
                     fontSize = 26.rsp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = RemoteFontWeight.SemiBold,
                 )
                 RemoteRow(
                     modifier = RemoteModifier.padding(top = 14.rdp),
@@ -85,7 +85,7 @@ internal fun DetailsSection(id: String) {
                         label = "−",
                         onClick =
                             act(
-                                valueChange(
+                                valueChangeAction(
                                     remoteState = qty,
                                     updatedValue = max(qty - 1f.rf, 1f.rf),
                                 )
@@ -93,9 +93,9 @@ internal fun DetailsSection(id: String) {
                     )
                     // The quantity, 1…9: nine digits on top of each other, only the one equal to
                     // qty visible.
-                    // (RemoteInt.toRemoteString() would do it in one line, but in alpha23 it pulls
-                    // in android.icu,
-                    // and the sections could no longer be rendered on a plain JVM — see tools/.)
+                    // (RemoteInt.toRemoteString() would do it in one line. Up to alpha23 it pulled in
+                    // android.icu, so the sections could not be rendered on a plain JVM; in alpha24 it is
+                    // platform-free, but switching to it changes the document — not done here.)
                     RemoteBox(
                         modifier = RemoteModifier.width(40.rdp),
                         contentAlignment = RemoteAlignment.Center,
@@ -106,7 +106,7 @@ internal fun DetailsSection(id: String) {
                                 modifier = RemoteModifier.alpha(1f.rf - min(abs(qty - k.toFloat().rf), 1f.rf)),
                                 color = BrewColors.Ink.rc,
                                 fontSize = 22.rsp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = RemoteFontWeight.SemiBold,
                             )
                         }
                     }
@@ -114,7 +114,7 @@ internal fun DetailsSection(id: String) {
                         label = "+",
                         onClick =
                             act(
-                                valueChange(
+                                valueChangeAction(
                                     remoteState = qty,
                                     updatedValue = min(qty + 1f.rf, 9f.rf),
                                 )
@@ -150,7 +150,7 @@ internal fun DetailsSection(id: String) {
                         text = "About".rs,
                         color = BrewColors.Ink.rc,
                         fontSize = 20.rsp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = RemoteFontWeight.SemiBold,
                     )
                     RemoteText(
                         text = ("${d.desc}. Made in our kitchen in Yerevan every morning; " + "ask the barista what goes best with it.").rs,
@@ -171,7 +171,7 @@ internal fun DetailsSection(id: String) {
                         selected = size,
                     ) { i ->
                         listOf(
-                            valueChange(
+                            valueChangeAction(
                                 remoteState = large,
                                 updatedValue = (if (i == 1) 1f else 0f).rf,
                             )
@@ -189,7 +189,7 @@ internal fun DetailsSection(id: String) {
                         modifier = RemoteModifier.padding(top = 4.rdp),
                         color = BrewColors.Ink.rc,
                         fontSize = 20.rsp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = RemoteFontWeight.SemiBold,
                     )
                     RemoteText(
                         text = "Optional · pick any".rs,

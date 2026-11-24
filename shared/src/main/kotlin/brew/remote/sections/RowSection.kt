@@ -5,10 +5,10 @@ import androidx.compose.remote.creation.compose.layout.*
 import androidx.compose.remote.creation.compose.modifier.*
 import androidx.compose.remote.creation.compose.shapes.*
 import androidx.compose.remote.creation.compose.state.*
+import androidx.compose.remote.creation.compose.text.RemoteFontWeight
+import androidx.compose.remote.creation.compose.text.RemoteTextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import brew.remote.BrewCatalog
 import brew.remote.BrewColors
 import brew.remote.components.AddButton
@@ -32,7 +32,7 @@ internal fun RowSection(id: String) {
                 RemoteModifier.width(280.rdp)
                     .fillMaxHeight()
                     .clip(RemoteRoundedCornerShape(size = 20.rdp))
-                    .clickable(action = hostAction(name = "open_details:${d.id}".rs)),
+                    .clickable(onClick = hostAction(name = "open_details:${d.id}".rs), role = RemoteRole.Button),
             verticalAlignment = RemoteAlignment.CenterVertically,
         ) {
             RemoteBox(
@@ -46,9 +46,9 @@ internal fun RowSection(id: String) {
                     text = d.name.rs,
                     color = BrewColors.Ink.rc,
                     fontSize = 17.rsp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = RemoteFontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = RemoteTextOverflow.Ellipsis,
                 )
                 RemoteText(
                     text = d.desc.rs,
@@ -56,14 +56,14 @@ internal fun RowSection(id: String) {
                     color = BrewColors.Muted.rc,
                     fontSize = 13.rsp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = RemoteTextOverflow.Ellipsis,
                 )
                 RemoteText(
                     text = BrewCatalog.price(d.price).rs,
                     modifier = RemoteModifier.padding(top = 6.rdp),
                     color = BrewColors.Ink.rc,
                     fontSize = 16.rsp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = RemoteFontWeight.SemiBold,
                 )
             }
         }

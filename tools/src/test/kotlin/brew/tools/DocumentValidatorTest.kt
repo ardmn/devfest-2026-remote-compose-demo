@@ -11,7 +11,7 @@ import org.junit.Test
 
 /**
  * The validator (shared/…/brew/document, run by the Android app on every download) stands between the network and the player, because the
- * library itself accepts a truncated document at any length (rechecked on alpha23). Real section documents, rendered the way the server's
+ * library itself accepts a truncated document at any length (rechecked on alpha24). Real section documents, rendered the way the server's
  * are.
  */
 class DocumentValidatorTest {

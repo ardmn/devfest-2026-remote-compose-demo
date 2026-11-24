@@ -5,10 +5,10 @@ import androidx.compose.remote.creation.compose.layout.*
 import androidx.compose.remote.creation.compose.modifier.*
 import androidx.compose.remote.creation.compose.shapes.*
 import androidx.compose.remote.creation.compose.state.*
+import androidx.compose.remote.creation.compose.text.RemoteFontWeight
+import androidx.compose.remote.creation.compose.text.RemoteTextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import brew.remote.BrewCatalog
 import brew.remote.BrewCatalog.Stage
 import brew.remote.BrewColors
@@ -39,7 +39,7 @@ private fun ProductCard(d: BrewCatalog.Drink) {
                     RemoteModifier.fillMaxSize()
                         .clip(RemoteRoundedCornerShape(size = 24.rdp))
                         .background(Color(d.tile).rc)
-                        .clickable(action = open),
+                        .clickable(onClick = open, role = RemoteRole.Button),
                 contentAlignment = RemoteAlignment.Center,
             ) {
                 Emoji(emoji = d.emoji, sizeSp = 76)
@@ -52,14 +52,14 @@ private fun ProductCard(d: BrewCatalog.Drink) {
                 AddButton(id = d.id, sizeDp = 30, modifier = RemoteModifier.padding(top = 10.rdp))
             }
         }
-        RemoteColumn(modifier = RemoteModifier.fillMaxWidth().padding(top = 10.rdp).clickable(action = open)) {
+        RemoteColumn(modifier = RemoteModifier.fillMaxWidth().padding(top = 10.rdp).clickable(onClick = open, role = RemoteRole.Button)) {
             RemoteText(
                 text = d.name.rs,
                 color = BrewColors.Ink.rc,
                 fontSize = 17.rsp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = RemoteFontWeight.SemiBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = RemoteTextOverflow.Ellipsis,
             )
             RemoteText(
                 text = d.desc.rs,
@@ -67,14 +67,14 @@ private fun ProductCard(d: BrewCatalog.Drink) {
                 color = BrewColors.Muted.rc,
                 fontSize = 13.rsp,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                overflow = RemoteTextOverflow.Ellipsis,
             )
             RemoteText(
                 text = BrewCatalog.price(d.price).rs,
                 modifier = RemoteModifier.padding(top = 6.rdp),
                 color = BrewColors.Ink.rc,
                 fontSize = 16.rsp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = RemoteFontWeight.SemiBold,
             )
         }
     }

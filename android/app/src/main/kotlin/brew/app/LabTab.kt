@@ -1,6 +1,6 @@
 @file:Suppress("RestrictedApiAndroidX", "RestrictedApi", "ClickableViewAccessibility")
 
-// RemoteDocumentPlayer and RemoteComposePlayer.setShaderControl are @RestrictTo(LIBRARY_GROUP) in alpha23.
+// RemoteDocumentPlayer and RemoteComposePlayer.setShaderControl are @RestrictTo(LIBRARY_GROUP) in alpha24.
 
 package brew.app
 

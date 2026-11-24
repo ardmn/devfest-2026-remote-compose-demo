@@ -2,13 +2,14 @@ package brew.remote.components
 
 import androidx.compose.remote.creation.compose.action.RemoteAction
 import androidx.compose.remote.creation.compose.action.combinedAction
-import androidx.compose.remote.creation.compose.action.valueChange
+import androidx.compose.remote.creation.compose.action.valueChangeAction
 import androidx.compose.remote.creation.compose.layout.RemoteAlignment
 import androidx.compose.remote.creation.compose.layout.RemoteBox
 import androidx.compose.remote.creation.compose.layout.RemoteColumn
 import androidx.compose.remote.creation.compose.layout.RemoteComposable
 import androidx.compose.remote.creation.compose.layout.RemoteText
 import androidx.compose.remote.creation.compose.modifier.RemoteModifier
+import androidx.compose.remote.creation.compose.modifier.RemoteRole
 import androidx.compose.remote.creation.compose.modifier.background
 import androidx.compose.remote.creation.compose.modifier.border
 import androidx.compose.remote.creation.compose.modifier.clickable
@@ -19,18 +20,18 @@ import androidx.compose.remote.creation.compose.modifier.width
 import androidx.compose.remote.creation.compose.shapes.RemoteCircleShape
 import androidx.compose.remote.creation.compose.shapes.RemoteRoundedCornerShape
 import androidx.compose.remote.creation.compose.state.MutableRemoteFloat
+import androidx.compose.remote.creation.compose.state.lerp
 import androidx.compose.remote.creation.compose.state.rc
 import androidx.compose.remote.creation.compose.state.rdp
 import androidx.compose.remote.creation.compose.state.rf
 import androidx.compose.remote.creation.compose.state.rs
 import androidx.compose.remote.creation.compose.state.rsp
-import androidx.compose.remote.creation.compose.state.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import brew.remote.BrewCatalog
 import brew.remote.BrewColors
 
-/** A topping chip: a tap toggles [on] (0 / 1); the ring's colour follows it through tween(). */
+/** A topping chip: a tap toggles [on] (0 / 1); the ring's colour follows it through lerp(). */
 @RemoteComposable
 @Composable
 internal fun ToppingChip(
@@ -38,12 +39,12 @@ internal fun ToppingChip(
     on: MutableRemoteFloat,
     report: List<RemoteAction>,
 ) {
-    val toggle = listOf(valueChange(remoteState = on, updatedValue = 1f.rf - on)) + report
+    val toggle = listOf(valueChangeAction(remoteState = on, updatedValue = 1f.rf - on)) + report
     RemoteColumn(
         modifier =
             RemoteModifier.width(62.rdp)
                 .clip(RemoteRoundedCornerShape(size = 16.rdp))
-                .clickable(action = combinedAction(*toggle.toTypedArray())),
+                .clickable(onClick = combinedAction(*toggle.toTypedArray()), role = RemoteRole.Button),
         horizontalAlignment = RemoteAlignment.CenterHorizontally,
     ) {
         RemoteBox(
@@ -54,10 +55,10 @@ internal fun ToppingChip(
                     .border(
                         width = 2.5f.rdp,
                         color =
-                            tween(
+                            lerp(
                                 from = Color.Transparent.rc,
                                 to = BrewColors.TanDark.rc,
-                                tween = on,
+                                fraction = on,
                             ),
                         shape = RemoteCircleShape,
                     ),

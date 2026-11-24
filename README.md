@@ -10,7 +10,7 @@ The same bytes play on **Android** (the androidx player) and **iOS** (the commun
 |---|---|---|
 | ![Android home](docs/android-home.png) | ![Product page](docs/android-product.png) | ![iOS home](docs/ios-home.png) |
 
-Built for the talk *UI Without a Release* (DevFest Armenia 2026). Remote Compose **1.0.0-alpha23**.
+Built for the talk *UI Without a Release* (DevFest Armenia 2026). Remote Compose **1.0.0-alpha24**.
 
 ## Run it — no server needed
 
@@ -84,7 +84,7 @@ config/    detekt's config (detekt.yml); the Android Lint checks off in app and 
 
 ## Good to know
 
-- **Alpha.** Remote Compose is 1.0.0-alpha23; APIs change every two weeks.
+- **Alpha.** Remote Compose is 1.0.0-alpha24; APIs change every two weeks.
 - **Public vs internal API.** The sections (`brew.remote`) use only the public API, enforced by lint
   (`RestrictedApi` is an error in `shared/`). Some things have no public API yet and use `@RestrictTo` code on
   purpose: the players inside the apps, the JVM capture and the JSON converter in `tools/`, and the shader documents

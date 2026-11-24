@@ -1,4 +1,4 @@
-// The Remote Compose player/core APIs are @RestrictTo(LIBRARY_GROUP) in 1.0.0-alpha23: there is no
+// The Remote Compose player/core APIs are @RestrictTo(LIBRARY_GROUP) in 1.0.0-alpha24: there is no
 // public way to decode or play a document yet. Suppressing the lint check is deliberate for this
 // sample.
 @file:Suppress("RestrictedApiAndroidX", "RestrictedApi")
@@ -18,7 +18,7 @@ import java.security.MessageDigest
 class InvalidDocumentException(message: String) : Exception(message)
 
 /**
- * Checks bytes BEFORE they reach a player. From alpha19 through alpha23 (rechecked on alpha23, 2026-11-15) the library alone accepts
+ * Checks bytes BEFORE they reach a player. From alpha19 through alpha24 (rechecked on alpha24, 2026-11-24) the library alone accepts
  * truncated input without complaint: CoreDocument.initFromBuffer returns normally for a document cut at any length (even 0 bytes),
  * canBeDisplayed() stays true, and the player draws whatever prefix survived.
  */
