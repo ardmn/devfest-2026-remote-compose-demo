@@ -53,8 +53,8 @@ jobs:
       - name: Build the rc tool (for the end-to-end test)
         run: ./gradlew --console=plain installDist
         working-directory: tools
-      # Onto the PATH for the next step, like the other tools here: download, check the SHA-256 (from the release's
-      # golangci-lint-$VERSION-checksums.txt), unpack.
+      # Like the other tools here: download, check the SHA-256 (from the release's golangci-lint-$VERSION-checksums.txt),
+      # unpack; then onto the PATH for the next step. ci/check.py reads VERSION from this step.
       - name: Install golangci-lint
         env:
           VERSION: 2.15.0

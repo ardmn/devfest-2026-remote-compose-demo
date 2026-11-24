@@ -60,10 +60,13 @@ warnings: list[str] = []
 def ci_pin(name: str) -> str:
     """The version of `name` CI uses: the VERSION env of the ci.yml step that downloads it from its GitHub releases."""
     repo = PINNED[name][0]
-    for step in re.split(r"^\s*- (?=name:|uses:)", WORKFLOW.read_text(), flags=re.MULTILINE):
-        version = re.search(r"^\s*VERSION:\s*\"?([^\s\"]+)", step, re.MULTILINE)
-        if version and f"github.com/{repo}/releases/download/" in step:
-            return version.group(1)
+    # A step starts at any "- key:" list item; VERSION may be quoted either way.
+    for step in re.split(r"^\s*- (?=[\w-]+:)", WORKFLOW.read_text(), flags=re.MULTILINE):
+        if f"github.com/{repo}/releases/download/" not in step:
+            continue
+        versions = re.findall(r"^\s*VERSION:\s*[\"']?([^\s\"']+)", step, re.MULTILINE)
+        if len(versions) == 1:
+            return versions[0]
     raise Failed(f"no step in {WORKFLOW.relative_to(REPO)} downloads {name} from github.com/{repo} with a VERSION")
 
 
@@ -187,7 +190,8 @@ def go_env() -> dict[str, str]:
 def check_go() -> int:
     """`go run ./cmd/demo lint -check`: golangci-lint fmt --diff + run, go vet, go test -race (each step runs)."""
     exe = go()
-    program("golangci-lint", f"go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v{ci_pin('golangci-lint')}")
+    pin = ci_pin("golangci-lint")
+    program("golangci-lint", f"go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v{pin}")
     return run([exe, "run", "./cmd/demo", "lint", "-check"], cwd=REPO / "backend", env=go_env())
 
 

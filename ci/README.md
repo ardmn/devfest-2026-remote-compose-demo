@@ -13,7 +13,8 @@ Gradle steps use `--continue`). Exactly these:
 
 golangci-lint, gitleaks, OSV-Scanner and SwiftLint are installed by plain workflow steps: `curl --retry 3
 --retry-all-errors`, `sha256sum -c` against the SHA-256 written next to the version (from the release's checksums
-file), unpack, run. Caches: Go's module and build cache (setup-go, keyed by `backend/go.mod` + `backend/go.sum`) and
+file for golangci-lint, gitleaks and OSV-Scanner; SwiftLint publishes none, so `sha256sum` of the downloaded zip),
+unpack, run. Caches: Go's module and build cache (setup-go, keyed by `backend/go.mod` + `backend/go.sum`) and
 Gradle's (setup-gradle); golangci-lint's analysis cache is not kept (the backend is small).
 
 The `ios` job (macOS runner, the newest Xcode 26 on the image) builds the iOS app for the simulator and runs

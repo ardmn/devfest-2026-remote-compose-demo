@@ -4,7 +4,8 @@
 android {
     lint {
         disable.addAll(
-            rootProject.file("../config/lint-volatile-checks.txt").readLines()*.trim().findAll { !it.isEmpty() && !it.startsWith("#") }
+            rootProject.file("../config/lint-volatile-checks.txt").readLines()*.trim()
+                .findAll { !it.isEmpty() && !it.startsWith("#") }
         )
     }
 }
