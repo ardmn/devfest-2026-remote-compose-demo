@@ -39,8 +39,9 @@ build:
   capture takes a `Context`). That capture traces nothing: since alpha24 only the Android-only classes call
   `androidx.tracing`, so the no-op stand-in for it that alpha23 needed is gone.
 
-The sections themselves stay on the public API. One thing they avoid for this: `RemoteInt.toRemoteString()`, which pulls
-in `android.icu` (the quantity on the product page is drawn another way, see `DetailsSection.kt`).
+The sections themselves stay on the public API. One thing they still avoid: `RemoteInt.toRemoteString()`, which pulled in
+`android.icu` up to alpha23. It is platform-free in alpha24, but switching to it changes the documents, so the quantity
+on the product page is still drawn another way (see `DetailsSection.kt`).
 
 ## Test
 
