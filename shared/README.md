@@ -11,7 +11,9 @@ The server-driven UI of Brew, in Kotlin. Not opened on its own: `android/` inclu
 | `brew.document` | `DocumentValidator`, the structural check the Android app runs on every download | `@RestrictTo` core parser |
 | `brew.lab` | the Lab's GPU shader documents (AGSL); `LabCards` is plain data | `@RestrictTo` creation DSL — shaders have no public authoring API in alpha24 |
 
-`RestrictedApi` is a lint **error** here (`build.gradle.kts`), with one exemption, `brew.lab` (`lint.xml`). Check:
+`RestrictedApi` is a lint **error** here (`build.gradle.kts`), with one exemption, `brew.lab` (`lint.xml`). Every other
+lint warning fails the build too (`warningsAsErrors`; shared has no lint baseline, so fix new warnings), except the
+checks that can fail with no code change, which are off (`config/lint-volatile-checks.txt`). Check:
 
 ```bash
 cd android
