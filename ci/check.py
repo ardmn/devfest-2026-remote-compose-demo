@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Runs the repo's static analysis locally, with the tools already installed on this machine.
 
-    python3 ci/check.py [--require-tools] <check> [<check> ...]     # or: all
+    python3 ci/check.py <check> [<check> ...]     # or: all
 
 Checks: gitleaks, osv, detekt, go, govulncheck, swiftlint, swift-format, all.
 
 Nothing is downloaded. Each check runs a program from the PATH (gitleaks, osv-scanner, golangci-lint, swiftlint), the
 Gradle wrapper (detekt; Gradle finds Java itself) or the Go command (`go run ./cmd/demo lint -check`,
-`go tool govulncheck`). The versions CI uses are in ci/README.md. A check whose program is missing, or that does not
-apply on this OS, is SKIPPED with the reason (with --require-tools a missing program FAILS instead: CI uses it); a
-check that finds something, or cannot run, FAILS. Every requested check runs; the script prints a summary and exits
-with the number of failed checks. Standard library only, Python 3.9+.
+`go tool govulncheck`). The versions of the programs from the PATH are pinned once, in .github/workflows/ci.yml (the
+VERSION of the step that downloads each one); this script reads them from there and warns, in the check's output and in
+the summary, when the local version differs (its findings can differ from CI's). A check whose program is missing
+FAILS with how to install it: CI runs that check, so a green run here must not hide it. A check that does not apply on
+this OS (swift-format off macOS) is SKIPPED with the reason. A check that finds something, or cannot run, FAILS. Each
+requested check runs once, even when named twice; the script prints a summary and exits with the number of failed
+checks. Standard library only, Python 3.9+.
 
 CI (.github/workflows/ci.yml) runs most of these as its own steps and uses this script for `osv`, which first has
 Gradle write lockfiles for the shipped dependencies, and for `swift-format` (the `ios` job, on macOS).
@@ -41,15 +44,43 @@ class Failed(Exception):
     """The check cannot run (it counts as failed); the message says why."""
 
 
-REQUIRE_TOOLS = False
+WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
+# The programs CI downloads in a workflow step: the GitHub repository it downloads from (how the step is found in
+# ci.yml) and the arguments that print the program's version.
+PINNED = {
+    "gitleaks": ("gitleaks/gitleaks", ["version"]),
+    "golangci-lint": ("golangci/golangci-lint", ["version"]),
+    "osv-scanner": ("google/osv-scanner", ["--version"]),
+    "swiftlint": ("realm/SwiftLint", ["version"]),
+}
+# The warnings of the check that is running (a version that differs from CI's); main() shows them in the summary.
+warnings: list[str] = []
+
+
+def ci_pin(name: str) -> str:
+    """The version of `name` CI uses: the VERSION env of the ci.yml step that downloads it from its GitHub releases."""
+    repo = PINNED[name][0]
+    for step in re.split(r"^\s*- (?=name:|uses:)", WORKFLOW.read_text(), flags=re.MULTILINE):
+        version = re.search(r"^\s*VERSION:\s*\"?([^\s\"]+)", step, re.MULTILINE)
+        if version and f"github.com/{repo}/releases/download/" in step:
+            return version.group(1)
+    raise Failed(f"no step in {WORKFLOW.relative_to(REPO)} downloads {name} from github.com/{repo} with a VERSION")
 
 
 def program(name: str, install: str) -> str:
-    """The program `name` from the PATH. Missing: SKIPPED, or FAILED with --require-tools."""
+    """The program `name` from the PATH; missing: FAILED. A pinned program whose version is not CI's adds a warning."""
     found = shutil.which(name)
     if found is None:
-        message = f"{name} is not on the PATH ({install})"
-        raise Failed(message) if REQUIRE_TOOLS else Skipped(message)
+        raise Failed(f"{name} is not on the PATH ({install})")
+    if name in PINNED:
+        pin = ci_pin(name)
+        out = subprocess.run([found, *PINNED[name][1]], capture_output=True, text=True, check=False)
+        text = out.stdout + out.stderr
+        if not re.search(r"(?<![\w.])v?" + re.escape(pin) + r"(?![\w.])", text):
+            local = (text.strip().splitlines() or ["no version printed"])[0]
+            warning = f"{name} here is not CI's {pin} ({local!r}; pinned in {WORKFLOW.relative_to(REPO)})"
+            print(f"WARNING: {warning}: its findings can differ from CI's", flush=True)
+            warnings.append(warning)
     return found
 
 
@@ -156,7 +187,7 @@ def go_env() -> dict[str, str]:
 def check_go() -> int:
     """`go run ./cmd/demo lint -check`: golangci-lint fmt --diff + run, go vet, go test -race (each step runs)."""
     exe = go()
-    program("golangci-lint", "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0")
+    program("golangci-lint", f"go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v{ci_pin('golangci-lint')}")
     return run([exe, "run", "./cmd/demo", "lint", "-check"], cwd=REPO / "backend", env=go_env())
 
 
@@ -192,18 +223,18 @@ CHECKS = {
 
 
 def main(argv: list[str]) -> int:
-    global REQUIRE_TOOLS
-    REQUIRE_TOOLS = "--require-tools" in argv
-    args = [a for a in argv if a != "--require-tools"]
-    names = list(CHECKS) if args == ["all"] else args
+    # Each check once, in the order first named: `go go` would otherwise run it twice and count it twice.
+    names = list(dict.fromkeys(list(CHECKS) if argv == ["all"] else argv))
     unknown = [n for n in names if n not in CHECKS]
     if not names or unknown:
-        print(f"usage: python3 ci/check.py [--require-tools] <{'|'.join(CHECKS)}|all> ...", file=sys.stderr)
+        print(f"usage: python3 ci/check.py <{'|'.join(CHECKS)}|all> ...", file=sys.stderr)
         return 2
     results: dict[str, str] = {}
     failed: list[str] = []
+    warned: list[str] = []
     for name in names:
         print(f"\n=== {name}", flush=True)
+        warnings.clear()
         try:
             code = CHECKS[name]()
             result = "ok" if code == 0 else f"FAILED (exit {code})"
@@ -214,6 +245,9 @@ def main(argv: list[str]) -> int:
         except Exception as e:  # a bug here, or an OSError starting a program: this check fails, the rest run
             traceback.print_exc()
             code, result = 1, f"FAILED: {type(e).__name__}: {e}"
+        if warnings:
+            result += "".join(f"; WARNING: {w}" for w in warnings)
+            warned.append(name)
         print(f"=== {name}: {result}", flush=True)
         results[name] = result
         if code != 0:
@@ -222,7 +256,10 @@ def main(argv: list[str]) -> int:
     for name, result in results.items():
         print(f"  {name}: {result}")
     skipped = [n for n, r in results.items() if r.startswith("SKIPPED")]
-    print(f"{len(failed)} failed, {len(skipped)} skipped, {len(results) - len(failed) - len(skipped)} ok")
+    print(
+        f"{len(failed)} failed, {len(skipped)} skipped, {len(results) - len(failed) - len(skipped)} ok"
+        f", {len(warned)} with a warning"
+    )
     return len(failed)
 
 
