@@ -3,6 +3,8 @@
 // Kotlin's visibility check is suppressed for it (the compiler warns that such a suppression is unspecified
 // behaviour). It compiles to a public static method, so it links and runs; a release that renames or removes it
 // fails this build (and RenderTest), not silently. The sections themselves stay public-API only.
+// Why internal: androidx b51def2d32e (lint false positives, no outside callers). Public JVM capture is requested
+// in https://issuetracker.google.com/issues/482343980; switch to it when it ships.
 @file:Suppress("RestrictedApi", "INVISIBLE_REFERENCE")
 
 package brew.tools
