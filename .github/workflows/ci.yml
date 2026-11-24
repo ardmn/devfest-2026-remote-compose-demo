@@ -1,8 +1,9 @@
 # Tests and static analysis: on Linux the Go backend, the Kotlin tools/shared/android code, secrets and SwiftLint;
-# on macOS the iOS app build and swift-format. No Android APK is assembled; ci/README.md lists exactly what runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
+# on macOS the iOS app build and swift-format. No Android APK is assembled; ci/README.md lists exactly what runs.
+# Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
 # Within a job each check is its own step with `if: ${{ !cancelled() }}`, so one failing check does not hide the others.
-# Versions: actions by commit SHA; gitleaks, OSV-Scanner and SwiftLint here (each once, with the SHA-256 of the
-# download); golangci-lint here by version only (the official action installs it, without a checksum); govulncheck in
+# Versions: actions by commit SHA; golangci-lint, gitleaks, OSV-Scanner and SwiftLint here (each once, as VERSION with
+# the SHA256 of the download, in the step that installs it; ci/check.py reads them from here); govulncheck in
 # backend/go.mod; detekt and ktfmt in gradle/libs.versions.toml.
 name: CI
 
@@ -52,12 +53,17 @@ jobs:
       - name: Build the rc tool (for the end-to-end test)
         run: ./gradlew --console=plain installDist
         working-directory: tools
-      # Only installs golangci-lint onto the PATH (the action pins the version, not a checksum).
+      # Like the other tools here: download, check the SHA-256 (from the release's golangci-lint-$VERSION-checksums.txt),
+      # unpack; then onto the PATH for the next step. ci/check.py reads VERSION from this step.
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          version: v2.15.0
-          install-only: true
+        env:
+          VERSION: 2.15.0
+          SHA256: 9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea
+        run: |
+          curl -sSfL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/golangci-lint.tar.gz" "https://github.com/golangci/golangci-lint/releases/download/v$VERSION/golangci-lint-$VERSION-linux-amd64.tar.gz"
+          echo "$SHA256  $RUNNER_TEMP/golangci-lint.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/golangci-lint.tar.gz" -C "$RUNNER_TEMP" "golangci-lint-$VERSION-linux-amd64/golangci-lint"
+          echo "$RUNNER_TEMP/golangci-lint-$VERSION-linux-amd64" >> "$GITHUB_PATH"
       # The one list of Go checks (cmd/demo lintSteps): fmt --diff, golangci-lint run, go vet, go test -race. Every
       # step runs even if one fails.
       - name: Go checks (go run ./cmd/demo lint -check)
@@ -109,7 +115,7 @@ jobs:
           curl -sSfL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/bin/osv-scanner" "https://github.com/google/osv-scanner/releases/download/v$VERSION/osv-scanner_linux_amd64"
           echo "$SHA256  $RUNNER_TEMP/bin/osv-scanner" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/bin/osv-scanner"
-          PATH="$RUNNER_TEMP/bin:$PATH" python3 ci/check.py --require-tools osv
+          PATH="$RUNNER_TEMP/bin:$PATH" python3 ci/check.py osv
 
   security:
     name: Secrets — gitleaks

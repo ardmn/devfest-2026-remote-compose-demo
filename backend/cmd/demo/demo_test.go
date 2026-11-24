@@ -238,6 +238,34 @@ func TestLint(t *testing.T) {
 	}
 }
 
+// Ctrl+C during a step stops lint: no later step starts, and the error says it was cancelled.
+func TestLintStopsWhenCancelled(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	gl := "/usr/bin/golangci-lint"
+	var ran []string
+	run := func(_ context.Context, out io.Writer, _, _, name string, args ...string) error {
+		line := strings.Join(append([]string{name}, args...), " ")
+		ran = append(ran, line)
+		if line == gl+" version" {
+			_, _ = io.WriteString(out, "golangci-lint has version 2.15.0 built with go1.26.11")
+		}
+		if line == gl+" run" {
+			cancel() // Ctrl+C while golangci-lint runs
+			return errors.New(line + ": signal: interrupt")
+		}
+		return nil
+	}
+	err := lint(ctx, fakeEnv("linux", nil, []string{"golangci-lint"}), run, []string{"-check"}, io.Discard)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("lint after Ctrl+C = %v, want context.Canceled", err)
+	}
+	if want := []string{gl + " version", gl + " fmt --diff", gl + " run"}; !slices.Equal(ran, want) {
+		t.Errorf("lint after Ctrl+C ran %q, want %q", ran, want)
+	}
+}
+
 // lintErrorMismatch says what is wrong with lint's error: want is "" (none), "usage" or a substring; every failed
 // command must be named in it. "" means it matches.
 func lintErrorMismatch(err error, want string, failed []string) string {

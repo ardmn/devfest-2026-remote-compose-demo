@@ -50,8 +50,8 @@ func render(ctx context.Context, e env, out io.Writer) error {
 }
 
 // lint formats, lints, vets and tests the backend (golangci-lint v2 from the PATH, config .golangci.yml). Every step
-// runs even when an earlier one fails, and the error lists each failure. CI runs the same steps as separate workflow
-// steps (.github/workflows/ci.yml); this is the local equivalent.
+// runs even when an earlier one fails, and the error lists each failure; Ctrl+C (ctx) stops it, with no further steps.
+// CI runs the same steps as separate workflow steps (.github/workflows/ci.yml); this is the local equivalent.
 //
 //	-check  only report unformatted files (golangci-lint fmt --diff, fails on a diff) instead of formatting them in
 //	        place
@@ -70,8 +70,9 @@ func lint(ctx context.Context, e env, run runner, args []string, out io.Writer) 
 	}
 	linter, err := e.lookPath("golangci-lint")
 	if err != nil {
-		return errors.New("golangci-lint not found on the PATH: install the version CI uses (ci/README.md), " +
-			"e.g. go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0")
+		return errors.New("golangci-lint not found on the PATH: install the version CI uses (the VERSION of the " +
+			"Install golangci-lint step in .github/workflows/ci.yml), e.g. " +
+			"go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v<VERSION>")
 	}
 	var version strings.Builder
 	if err := run(ctx, &version, ".", "", linter, "version"); err != nil {
@@ -83,6 +84,10 @@ func lint(ctx context.Context, e env, run runner, args []string, out io.Writer) 
 	say(out, strings.TrimSpace(version.String()))
 	var failed []error
 	for _, step := range lintSteps(linter, *check) {
+		if err := ctx.Err(); err != nil { // stopped: the steps left would only fail to start, one by one
+			failed = append(failed, fmt.Errorf("lint stopped: %w", err))
+			break
+		}
 		if err := run(ctx, out, ".", "", step[0], step[1:]...); err != nil {
 			say(out, "lint: FAILED: "+err.Error())
 			failed = append(failed, err)

@@ -108,11 +108,12 @@ go run ./cmd/demo lint -check # the same, but unformatted code fails instead of 
 go tool govulncheck ./...     # known vulnerabilities in the code's call graph and the Go standard library
 ```
 
-`lint` uses [golangci-lint](https://golangci-lint.run/welcome/install) v2 from the PATH; CI uses 2.15.0 (pinned in
-`.github/workflows/ci.yml`), so install that one:
-`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0` (or `brew install golangci-lint`, which
-may be newer). govulncheck is a Go tool of this module: `go.mod` pins its version and `go.sum` its bytes, nothing to
-install. CI runs fmt, golangci-lint, vet, the tests and govulncheck as separate steps ([ci/README.md](../ci/README.md)).
+`lint` uses [golangci-lint](https://golangci-lint.run/welcome/install) v2 from the PATH. Install the version CI uses,
+the `VERSION` of the "Install golangci-lint" step in `.github/workflows/ci.yml`: `go install
+github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v<VERSION>` (`brew install golangci-lint` may be newer; `python3
+ci/check.py go` warns when the version differs). govulncheck is a Go tool of this module: `go.mod` pins its version and
+`go.sum` its bytes, nothing to install. CI runs fmt, golangci-lint, vet, the tests and govulncheck as separate steps
+([ci/README.md](../ci/README.md)).
 
 The tests that fake the rc tool are shell scripts and are skipped on Windows. The end-to-end test is skipped when the
 rc tool is not built, except with `BREW_REQUIRE_RC_TOOL=1` (CI sets it after building the tool), where it fails.

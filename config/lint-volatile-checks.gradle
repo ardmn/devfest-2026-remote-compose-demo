@@ -1,0 +1,11 @@
+// Turns off the Android Lint checks listed in lint-volatile-checks.txt (one id per line; # comments), in each Android
+// module that applies this file (android/app, shared). Groovy, not Kotlin: a Kotlin script plugin does not see AGP's
+// classes.
+android {
+    lint {
+        disable.addAll(
+            rootProject.file("../config/lint-volatile-checks.txt").readLines()*.trim()
+                .findAll { !it.isEmpty() && !it.startsWith("#") }
+        )
+    }
+}

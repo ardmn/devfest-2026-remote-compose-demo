@@ -120,12 +120,6 @@ ktfmt {
     maxWidth.set(140)
 }
 
-// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
-// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew detekt checks,
-// detektBaseline rewrites the baseline (on purpose only; review its diff).
-detekt {
-    buildUponDefaultConfig = true
-    config.setFrom(rootProject.file("../config/detekt.yml"))
-    baseline = file("detekt-baseline.xml")
-    source.setFrom("src")
-}
+// detekt: the same setup for every Kotlin module (config/detekt.gradle). ./gradlew detekt checks,
+// detektBaseline rewrites this module's detekt-baseline.xml (on purpose only; review its diff).
+apply(from = rootProject.file("../config/detekt.gradle"))
