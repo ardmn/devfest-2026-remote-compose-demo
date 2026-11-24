@@ -2,7 +2,7 @@
 
 SwiftUI app: tabs, navigation, cart, banner pager, pull to refresh, a toast with Undo — plain SwiftUI. The content
 sections are Remote Compose documents, played by the community player
-[rc-players](https://github.com/yschimke/rc-players) (3.5.2, Swift package `RcComposePlayerSwiftUI`).
+[rc-players](https://github.com/yschimke/rc-players) (3.12.1, Swift package `RcComposePlayerSwiftUI`).
 
 ## Run
 
@@ -60,8 +60,8 @@ adb pull /sdcard/Android/data/brew.app/files/lab/. ios/Brew/Resources/sections/
 
 The documents ask through host actions (`add_to_cart:<id>`, `toggle_favorite:<id>`, `category:<key>`,
 `open_details:<id>`; the product page sends `qty`, `large` and the `toppings` bit mask as numbers; the app prices them from its catalog) and show app state through named
-colours the app pushes (`fav_<id>`, `cat_<key>`) — colours because this player's controller sets floats, strings and
-colours, not integers.
+colours the app pushes (`fav_<id>`, `cat_<key>`) — colours because, until rc-players 3.11, this player's controller set
+floats, strings and colours, not integers (it sets integers and booleans too since 3.11; the documents keep colours).
 
 ## The project file
 
@@ -78,5 +78,5 @@ The same bytes play on both, but rc-players is stricter in places; each was fixe
 | `paint style 2 is not implemented` (fill + stroke at once) | the heart is two icons, a fill and an outline |
 | `TouchUpModifierOperation: nested opcode 81 is not an action` | no expression is declared inside an action; the press fade's clock is declared before the touch handlers |
 | `visibility()` does not follow a document-local integer change | radio dots and topping rings take their colour from a float |
-| the controller sets floats, strings and colours, not integers | favourites and the category highlight are named colours |
+| the controller set floats, strings and colours, not integers (before 3.11) | favourites and the category highlight are named colours |
 | the touch time is NaN before the first touch | shader checks are NaN-proof: `!(age >= 0 && age <= 4)` |

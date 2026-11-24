@@ -353,7 +353,7 @@
 			repositoryURL = "https://github.com/yschimke/rc-players.git";
 			requirement = {
 				kind = exactVersion;
-				version = 3.5.2;
+				version = 3.12.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

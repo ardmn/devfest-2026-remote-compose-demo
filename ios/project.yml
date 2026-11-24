@@ -9,7 +9,7 @@ packages:
   RcComposePlayer:
     # The bare X.Y.Z tag is the one whose Package.swift points at the released XCFramework (see its header).
     url: https://github.com/yschimke/rc-players.git
-    exactVersion: 3.5.2
+    exactVersion: 3.12.1
 targets:
   Brew:
     type: application
