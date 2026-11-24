@@ -28,8 +28,8 @@ In `.github/workflows/ci.yml` it is the `VERSION` (with the download's `SHA256`)
 | Stack | Tool | Pinned in | Config | Existing findings |
 |---|---|---|---|---|
 | Kotlin (android, shared, tools) | ktfmt (Gradle plugin) | `gradle/libs.versions.toml` | `build.gradle.kts` | 0 |
-| Kotlin (android/app, shared, tools) | detekt (Gradle plugin `dev.detekt`) | `gradle/libs.versions.toml` | `config/detekt.yml` | in each module's `detekt-baseline.xml` (app 7, shared 66, tools 7) |
-| Android (app, shared) | Android Lint (AGP) | `gradle/libs.versions.toml` | `build.gradle.kts`, `config/lint-volatile-checks.txt`, `android/app/lint-baseline.xml` | 2 in the baseline (app); shared has no baseline |
+| Kotlin (android/app, shared, tools) | detekt (Gradle plugin `dev.detekt`) | `gradle/libs.versions.toml` | `config/detekt.gradle`, `config/detekt.yml` | in each module's `detekt-baseline.xml` (app 7, shared 66, tools 7) |
+| Android (app, shared) | Android Lint (AGP) | `gradle/libs.versions.toml` | `build.gradle.kts`, `config/lint-volatile-checks.txt` (read by `config/lint-volatile-checks.gradle`), `android/app/lint-baseline.xml` | 2 in the baseline (app); shared has no baseline |
 | Go (backend) | Go | `backend/go.mod` (`toolchain`) | — | — |
 | Go | golangci-lint (fmt + run) | `.github/workflows/ci.yml` | `backend/.golangci.yml` | 0 |
 | Go | govulncheck | `backend/go.mod` (`tool`), bytes in `go.sum` | — | 0 |

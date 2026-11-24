@@ -55,7 +55,7 @@ android/   Brew for Android (Jetpack Compose + the androidx Remote Compose playe
 ios/       Brew for iOS (SwiftUI + rc-players)
 gradle/    one version catalog for the Gradle builds (shared, tools, android)
 ci/        static analysis: what .github/workflows/ci.yml runs, and ci/check.py to run it locally
-config/    detekt's config (detekt.yml); the Android Lint checks off in app and shared (lint-volatile-checks.txt)
+config/    detekt's setup (detekt.gradle, detekt.yml); Android Lint checks off in app and shared (lint-volatile-checks.*)
 ```
 
 ## How it works

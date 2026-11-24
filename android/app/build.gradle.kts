@@ -34,13 +34,13 @@ android {
         // (regenerate on purpose only: ./gradlew :app:updateLintBaseline, then review the diff).
         warningsAsErrors = true
         baseline = file("lint-baseline.xml")
-        // Off: checks that can fail with no code change (the date, the network, the installed SDK). One list for app and
-        // shared, with the reasons: config/lint-volatile-checks.txt.
-        val volatileChecks = rootProject.file("../config/lint-volatile-checks.txt").readLines().map(String::trim)
-        disable += volatileChecks.filterNot { it.isEmpty() || it.startsWith("#") }
     }
     packaging { resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/{AL2.0,LGPL2.1}") }
 }
+
+// Lint checks that can fail with no code change (the date, the network, the installed SDK) are off: the one list for app
+// and shared, with the reasons, is config/lint-volatile-checks.txt.
+apply(from = rootProject.file("../config/lint-volatile-checks.gradle"))
 
 kotlin { jvmToolchain(17) }
 
@@ -64,12 +64,6 @@ ktfmt {
     maxWidth.set(140)
 }
 
-// detekt on top of its default config (config/detekt.yml), on the module's src/ (no type resolution). Findings that
-// existed when it was added are in detekt-baseline.xml: only new ones fail. ./gradlew :app:detekt checks,
-// :app:detektBaseline rewrites the baseline (on purpose only; review its diff).
-detekt {
-    buildUponDefaultConfig = true
-    config.setFrom(rootProject.file("../config/detekt.yml"))
-    baseline = file("detekt-baseline.xml")
-    source.setFrom("src")
-}
+// detekt: the same setup for every Kotlin module (config/detekt.gradle). ./gradlew :app:detekt checks,
+// :app:detektBaseline rewrites this module's detekt-baseline.xml (on purpose only; review its diff).
+apply(from = rootProject.file("../config/detekt.gradle"))
