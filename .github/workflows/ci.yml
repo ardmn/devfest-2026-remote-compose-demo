@@ -1,5 +1,6 @@
 # Tests and static analysis: on Linux the Go backend, the Kotlin tools/shared/android code, secrets and SwiftLint;
-# on macOS the iOS app build and swift-format. No Android APK is assembled; ci/README.md lists exactly what runs. Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
+# on macOS the iOS app build and swift-format. No Android APK is assembled; ci/README.md lists exactly what runs.
+# Every step is judged by its exit code; the analysers fail only on findings that are not in their baselines.
 # Within a job each check is its own step with `if: ${{ !cancelled() }}`, so one failing check does not hide the others.
 # Versions: actions by commit SHA; golangci-lint, gitleaks, OSV-Scanner and SwiftLint here (each once, as VERSION with
 # the SHA256 of the download, in the step that installs it; ci/check.py reads them from here); govulncheck in
