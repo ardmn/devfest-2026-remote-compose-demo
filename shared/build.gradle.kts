@@ -11,7 +11,7 @@ plugins {
 //   brew.remote  — the sections and their building blocks, public @RemoteComposable API only, no
 // android.*
 //   brew.capture — turns a section into document bytes (needs an Android Context)
-//   brew.lab     — GPU shader documents; shaders have no public authoring API in alpha23 (see
+//   brew.lab     — GPU shader documents; shaders have no public authoring API in alpha24 (see
 // lint.xml)
 // Consumed as "brew:shared" by the android and backend builds (composite build).
 group = "brew"
@@ -45,6 +45,9 @@ dependencies {
     api(libs.remote.core)
     api(libs.remote.creation)
     api(libs.remote.creation.core)
+    // The state types (RemoteFloat, RemoteColor, MutableRemoteFloat, …) and their factories: moved out of
+    // remote-creation-compose in alpha24. The sections use them directly.
+    api(libs.remote.creation.expression)
     // The public authoring API: @RemoteComposable composables, captured into a document.
     api(libs.remote.creation.compose)
     implementation(platform(libs.androidx.compose.bom))

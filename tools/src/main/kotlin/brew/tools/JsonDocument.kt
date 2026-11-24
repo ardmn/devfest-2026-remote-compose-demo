@@ -1,4 +1,4 @@
-// RemoteComposeJsonParser is @RestrictTo in alpha23.
+// RemoteComposeJsonParser is @RestrictTo in alpha24.
 @file:Suppress("RestrictedApi")
 
 package brew.tools
@@ -9,7 +9,7 @@ import brew.document.DocumentValidator
 /**
  * A document's JSON representation → the binary .rc the players read. Remote Compose has a JSON form of a document; any backend can build
  * or edit that JSON (the Go server does, for the promo), and this one call turns it into bytes. There is no converter the other way (binary
- * → JSON) in alpha23.
+ * → JSON) in alpha24.
  */
 object JsonDocument {
     /** @throws IllegalArgumentException when the JSON is not a document, or converts to one that does not validate */

@@ -5,9 +5,9 @@ import androidx.compose.remote.creation.compose.layout.*
 import androidx.compose.remote.creation.compose.modifier.*
 import androidx.compose.remote.creation.compose.shapes.*
 import androidx.compose.remote.creation.compose.state.*
+import androidx.compose.remote.creation.compose.text.RemoteFontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import brew.remote.BrewCatalog.Stage
 import brew.remote.BrewColors
 import brew.remote.components.Emoji
@@ -37,7 +37,7 @@ internal fun HeroSection(s: Stage, i: Int) {
                     text = b.headline.rs,
                     color = BrewColors.Ink.rc,
                     fontSize = 32.rsp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = RemoteFontWeight.ExtraBold,
                 )
                 Pressable(
                     modifier = RemoteModifier.padding(top = 14.rdp).size(width = 140.rdp, height = 36.rdp),
@@ -49,7 +49,7 @@ internal fun HeroSection(s: Stage, i: Int) {
                         text = b.cta.rs,
                         color = BrewColors.Ink.rc,
                         fontSize = 13.rsp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = RemoteFontWeight.SemiBold,
                     )
                 }
             }

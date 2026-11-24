@@ -3,6 +3,7 @@ package brew.remote.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.remote.creation.compose.action.hostAction
+import androidx.compose.remote.creation.compose.capture.toRemoteImageVector
 import androidx.compose.remote.creation.compose.layout.RemoteBox
 import androidx.compose.remote.creation.compose.layout.RemoteComposable
 import androidx.compose.remote.creation.compose.modifier.RemoteModifier
@@ -33,7 +34,7 @@ internal fun AddButton(id: String, sizeDp: Int, modifier: RemoteModifier = Remot
         RemoteBox(
             modifier =
                 RemoteModifier.size((sizeDp * 0.7f).rdp)
-                    .background(painterRemoteVector(image = Icons.Filled.Add, tintColor = Color.White.rc))
+                    .background(painterRemoteVector(vector = Icons.Filled.Add.toRemoteImageVector(), tintColor = Color.White.rc))
         )
     }
 }

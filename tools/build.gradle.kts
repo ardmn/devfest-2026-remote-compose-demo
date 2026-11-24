@@ -42,11 +42,11 @@ sourceSets.main {
     )
 }
 
-// remote-creation-compose (the @RemoteComposable API) is published only as an Android AAR in
-// alpha23, but the code
-// path that writes a document needs no Android: take the classes out of the AAR and run them on the
-// JVM. Its
-// dependencies are listed below, with Compose's JVM build in place of the Android one.
+// remote-creation-compose (the @RemoteComposable API) is Kotlin Multiplatform since alpha24, but its JVM build is the
+// common part only: the Compose UI interop the sections use (Color.rc, ImageVector icons) is in the
+// Android build alone. The code path that writes a document needs no Android: take the classes out of the Android
+// AAR (remote-creation-compose-android) and run them on the JVM. Its dependencies are listed below, with Compose's
+// JVM build in place of the Android one.
 val aar: Configuration by configurations.creating { isTransitive = false }
 
 interface Archives {
@@ -61,22 +61,18 @@ val unpackAar by
         into(layout.buildDirectory.dir("aar"))
     }
 
-configurations.all {
-    // androidx.tracing's JVM build is not binary compatible with the Android one the AAR was
-    // compiled against;
-    // src/main/java/androidx/tracing/Trace.java stands in (tracing is a no-op here).
-    exclude(group = "androidx.tracing")
-}
-
 dependencies {
-    aar("androidx.compose.remote:remote-creation-compose:${libs.versions.remoteCompose.get()}@aar")
+    aar("androidx.compose.remote:remote-creation-compose-android:${libs.versions.remoteCompose.get()}@aar")
     implementation(files(unpackAar.map { it.destinationDir.resolve("remote-creation-compose.jar") }))
 
-    // remote-creation-compose's own dependencies (from its .module), JVM builds.
+    // remote-creation-compose-android's own dependencies (from its .module), JVM builds. Omitted: tracing,
+    // lifecycle-viewmodel and core-ktx, used only by the Context capture this JVM path never calls. remote-core and
+    // remote-creation-core come with remote-creation; listed because the code here uses them directly.
     implementation(libs.androidx.collection)
     implementation(libs.remote.core)
     implementation(libs.remote.creation)
     implementation(libs.remote.creation.core)
+    implementation(libs.remote.creation.expression)
     implementation(libs.jb.compose.runtime)
     implementation(libs.jb.compose.foundation)
     implementation(libs.jb.compose.ui)

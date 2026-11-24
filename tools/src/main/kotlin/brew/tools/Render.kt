@@ -1,8 +1,11 @@
-// The JVM capture: captureSingleRemoteDocument without a Context and a writer profile without
-// Android are
-// @RestrictTo in alpha23 (the public capture takes an Android Context). The sections themselves
-// stay public-API only.
-@file:Suppress("RestrictedApi")
+// The JVM capture. The public capture takes an Android Context. The writer profile without Android is @RestrictTo,
+// and since alpha24 the Context-free captureSingleRemoteDocument is `internal` (it was @RestrictTo up to alpha23):
+// Kotlin's visibility check is suppressed for it (the compiler warns that such a suppression is unspecified
+// behaviour). It compiles to a public static method, so it links and runs; a release that renames or removes it
+// fails this build (and RenderTest), not silently. The sections themselves stay public-API only.
+// Why internal: androidx b51def2d32e (lint false positives, no outside callers). Public JVM capture is requested
+// in https://issuetracker.google.com/issues/482343980; switch to it when it ships.
+@file:Suppress("RestrictedApi", "INVISIBLE_REFERENCE")
 
 package brew.tools
 

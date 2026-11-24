@@ -5,10 +5,10 @@ import androidx.compose.remote.creation.compose.layout.*
 import androidx.compose.remote.creation.compose.modifier.*
 import androidx.compose.remote.creation.compose.shapes.*
 import androidx.compose.remote.creation.compose.state.*
+import androidx.compose.remote.creation.compose.text.RemoteFontWeight
+import androidx.compose.remote.creation.compose.text.RemoteTextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import brew.remote.BrewCatalog
 import brew.remote.BrewCatalog.Stage
 import brew.remote.BrewColors
@@ -31,7 +31,7 @@ internal fun ForYouSection(s: Stage) {
                             RemoteModifier.fillMaxSize()
                                 .clip(RemoteRoundedCornerShape(size = 20.rdp))
                                 .background(Color(d.tile).rc)
-                                .clickable(action = hostAction(name = "open_details:${d.id}".rs)),
+                                .clickable(onClick = hostAction(name = "open_details:${d.id}".rs), role = RemoteRole.Button),
                         contentAlignment = RemoteAlignment.Center,
                     ) {
                         Emoji(emoji = d.emoji, sizeSp = 48)
@@ -48,9 +48,9 @@ internal fun ForYouSection(s: Stage) {
                     modifier = RemoteModifier.padding(top = 8.rdp),
                     color = BrewColors.Ink.rc,
                     fontSize = 14.rsp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = RemoteFontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = RemoteTextOverflow.Ellipsis,
                 )
                 RemoteText(
                     text = BrewCatalog.price(d.price).rs,

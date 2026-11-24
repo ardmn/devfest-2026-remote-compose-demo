@@ -9,7 +9,7 @@ The server-driven UI of Brew, in Kotlin. Not opened on its own: `android/` inclu
 | `brew.remote` | the sections (`sections/`) and their building blocks (`components/`), catalog, colours | public `@RemoteComposable` Compose API only, no `android.*` — it also runs on a plain JVM (`tools/`) |
 | `brew.capture` | on Android: turns a section into document bytes (`captureSingleRemoteDocument` with a `Context`) | public |
 | `brew.document` | `DocumentValidator`, the structural check the Android app runs on every download | `@RestrictTo` core parser |
-| `brew.lab` | the Lab's GPU shader documents (AGSL); `LabCards` is plain data | `@RestrictTo` creation DSL — shaders have no public authoring API in alpha23 |
+| `brew.lab` | the Lab's GPU shader documents (AGSL); `LabCards` is plain data | `@RestrictTo` creation DSL — shaders have no public authoring API in alpha24 |
 
 `RestrictedApi` is a lint **error** here (`build.gradle.kts`), with one exemption, `brew.lab` (`lint.xml`). Check:
 

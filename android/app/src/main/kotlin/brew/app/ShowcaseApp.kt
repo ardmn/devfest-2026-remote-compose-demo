@@ -1,5 +1,5 @@
 // The Remote Compose player APIs (StateUpdater, RemoteDocumentPlayer) are @RestrictTo(LIBRARY_GROUP) in
-// 1.0.0-alpha23: there is no public way to play a document in an app yet. Suppressing the lint check is deliberate.
+// 1.0.0-alpha24: there is no public way to play a document in an app yet. Suppressing the lint check is deliberate.
 @file:Suppress("RestrictedApiAndroidX", "RestrictedApi")
 
 package brew.app

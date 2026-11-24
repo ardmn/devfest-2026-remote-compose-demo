@@ -1,12 +1,11 @@
 package brew.lab
 
-import androidx.compose.remote.core.CoreDocument
-import androidx.compose.remote.core.operations.Header
-import androidx.compose.remote.creation.RemoteComposeWriter.HTag
 import androidx.compose.remote.creation.dsl.Modifier
 import androidx.compose.remote.creation.dsl.RcCanvasScope
+import androidx.compose.remote.creation.dsl.RcDensityBehavior
 import androidx.compose.remote.creation.dsl.RcFloat
 import androidx.compose.remote.creation.dsl.RcFontWeight
+import androidx.compose.remote.creation.dsl.RcHeaderTag
 import androidx.compose.remote.creation.dsl.RcHorizontalPositioning
 import androidx.compose.remote.creation.dsl.RcProfile
 import androidx.compose.remote.creation.dsl.RcScope
@@ -16,7 +15,6 @@ import androidx.compose.remote.creation.dsl.RcVerticalPositioning
 import androidx.compose.remote.creation.dsl.createRcBuffer
 import androidx.compose.remote.creation.dsl.fillMaxSize
 import androidx.compose.remote.creation.dsl.padding
-import androidx.compose.remote.creation.dsl.rf
 import androidx.compose.remote.creation.dsl.rsp
 import androidx.compose.remote.creation.dsl.touchPosX
 import androidx.compose.remote.creation.dsl.touchPosY
@@ -25,7 +23,7 @@ import androidx.compose.remote.creation.profile.RcPlatformProfiles
 /**
  * The Lab screen's documents: full-bleed AGSL shaders with Remote Compose text on top.
  *
- * Written with the creation DSL, not the public Compose API: in alpha23 shaders can only be authored through
+ * Written with the creation DSL, not the public Compose API: in alpha24 shaders can only be authored through
  *
  * @RestrictTo API (RemoteComposeContext.createShader / the DSL's shader {}). The rest of the app (brew.remote) stays on the public API;
  *   shared's lint ignores RestrictedApi for this package only (lint.xml).
@@ -44,13 +42,12 @@ object LabDocuments {
 
     private val PROFILE = RcProfile(RcPlatformProfiles.ANDROIDX)
 
-    // HTag is a Java class: its arguments cannot be named.
     private fun doc(h: Int, content: RcScope.() -> Unit): ByteArray =
         createRcBuffer(
             profile = PROFILE,
-            HTag(Header.DOC_WIDTH, W),
-            HTag(Header.DOC_HEIGHT, h),
-            HTag(Header.DOC_DENSITY_BEHAVIOR, CoreDocument.DENSITY_BEHAVIOR_DP),
+            RcHeaderTag.docWidth(W),
+            RcHeaderTag.docHeight(h),
+            RcHeaderTag.densityBehavior(RcDensityBehavior.Dp),
             content = content,
         )
 
@@ -62,11 +59,11 @@ object LabDocuments {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = componentWidth()
             val h = componentHeight()
-            // continuousSec, not animationTime: a document is redrawn every frame only while
+            // continuousSeconds, not animationTime: a document is redrawn every frame only while
             // something listens to
             // the continuous clock (RemoteComposeState.getOpsToUpdate); animationTime alone freezes
             // after one frame.
-            val t = continuousSec()
+            val t = continuousSeconds()
             val anim = animationTime()
             // A touch expression makes the document a touch listener: only then does the player
             // follow a drag

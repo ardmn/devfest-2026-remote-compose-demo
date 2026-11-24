@@ -3,7 +3,7 @@ agp = "9.5.1"
 kotlin = "2.4.21"
 # Every Remote Compose artifact is the PUBLISHED one from Google Maven, pinned exactly (strictly).
 # Latest stable of everything else as of 2026-10-13.
-remoteCompose = { strictly = "1.0.0-alpha23" }
+remoteCompose = { strictly = "1.0.0-alpha24" }
 okhttp = "5.5.0"
 activityCompose = "1.13.0"
 lifecycle = "2.10.0"
@@ -15,7 +15,7 @@ composeMultiplatform = "1.11.1"
 composeMultiplatformIcons = "1.7.3"
 coroutines = "1.11.0"
 orgJson = "20260814"
-# What remote-creation-compose alpha23 declares (its .module): tools/ lists it by hand (it takes the AAR's classes only).
+# What remote-creation-compose-android alpha24 declares (its .module): tools/ lists it by hand (it takes the AAR's classes only).
 androidxCollection = "1.7.0"
 
 [libraries]
@@ -26,6 +26,7 @@ remote-player-compose = { group = "androidx.compose.remote", name = "remote-play
 remote-creation = { group = "androidx.compose.remote", name = "remote-creation", version.ref = "remoteCompose" }
 remote-creation-core = { group = "androidx.compose.remote", name = "remote-creation-core", version.ref = "remoteCompose" }
 remote-creation-compose = { group = "androidx.compose.remote", name = "remote-creation-compose", version.ref = "remoteCompose" }
+remote-creation-expression = { group = "androidx.compose.remote", name = "remote-creation-expression", version.ref = "remoteCompose" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

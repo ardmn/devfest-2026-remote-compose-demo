@@ -23,13 +23,13 @@ internal fun CategoriesSection() {
         horizontalArrangement = RemoteArrangement.SpaceBetween,
     ) {
         CATEGORIES.forEach { (key, emoji, label) ->
-            val circle = rememberNamedRemoteColor(name = "cat_$key", initialValue = BrewColors.TanSoft)
-            val bar = rememberNamedRemoteColor(name = "catline_$key", initialValue = Color.Transparent)
+            val circle = rememberNamedRemoteColor(name = "cat_$key", defaultValue = BrewColors.TanSoft.rc)
+            val bar = rememberNamedRemoteColor(name = "catline_$key", defaultValue = Color.Transparent.rc)
             RemoteColumn(
                 modifier =
                     RemoteModifier.width(68.rdp)
                         .clip(RemoteRoundedCornerShape(size = 16.rdp))
-                        .clickable(action = hostAction(name = "category:$key".rs)),
+                        .clickable(onClick = hostAction(name = "category:$key".rs), role = RemoteRole.Button),
                 horizontalAlignment = RemoteAlignment.CenterHorizontally,
             ) {
                 RemoteBox(

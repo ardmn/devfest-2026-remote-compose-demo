@@ -74,6 +74,6 @@ ViewModel). The price the app charges comes from its catalog, not from the docum
 Two things learned the hard way, both in `Sections.kt`:
 - **Don't let the player recompose.** Every recomposition re-runs `setDocument()`, which resets the document's
   component sizes: circles turn square, icons vanish. Values are pushed from an effect instead.
-- **Players are `@RestrictTo` in alpha23** — there is no public way to play a document yet; this is deliberate here.
+- **Players are `@RestrictTo` in alpha24** — there is no public way to play a document yet; this is deliberate here.
 
 Code style: ktfmt (kotlinlang, 140 columns) — `./gradlew :app:ktfmtFormat`; named arguments wherever Kotlin allows.
